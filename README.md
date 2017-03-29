@@ -1,4 +1,2 @@
 # IMGforhuawei
-This is a test!
-Aha!
-hello
+修改了一些变量和函数
