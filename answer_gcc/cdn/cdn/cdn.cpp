@@ -12,7 +12,7 @@
 #include <sys/time.h>
 #include<stdio.h>
 #include<iostream>
-#include<algorithm>
+
 #include<queue>
 #include<fstream>
 using namespace std;
@@ -141,6 +141,7 @@ void process_data(const char * const filename,const char * const resultfile){
     {
         in>>u>>v>>b;
         out<<v<<" "<<u<<" "<<b<<"\n";
+        node_consumer.insert(pair<int,int>(v+1,u+1));
         need+=b;
         c[v+1][n-1]=b;
         //cout<<u<<","<<v<<","<<bw<<endl;

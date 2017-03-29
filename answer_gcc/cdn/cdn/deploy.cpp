@@ -6,8 +6,8 @@
 
 
 using namespace std;
-double alpha=0.5;
-double beta=0.5;
+double alpha=0.5; //热度列表需用到的参数
+double beta=0.5;  //热度列表需用到的参数
 extern int consumerNum;            //消费节点总数
 extern vector<int> bw;            //存储每个节点的总带宽
 extern int need;                     //消费节点总需求

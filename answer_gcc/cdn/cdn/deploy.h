@@ -5,6 +5,8 @@
 #include<list>
 #include<map>
 #include<vector>
+#include<algorithm>
+#include<cstring>
 using namespace std;
 
 struct path {
@@ -17,6 +19,7 @@ struct initial {
     int cost;
 };
 const int N = 900;
+map<int,int> node_consumer; //记录consumer和与其相连的点（<node,consumer>）
 typedef pair<int, int> PAIR;
 //void process_data(char * topo[MAX_EDGE_NUM], int line_num);
 void process_data(const char * const filename,const char * const resultfile);
