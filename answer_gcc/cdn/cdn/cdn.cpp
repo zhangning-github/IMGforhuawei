@@ -16,13 +16,15 @@
 #include<queue>
 #include<fstream>
 using namespace std;
-const int N = 1000;
-map<int,int> bwMap;
+const int N = 900;
+//map<int,int> bwMap;//从1开始
 int price[N][N]={0}; //每条边的单位租用费
-int consumerNum;
-int serverPrice;
-int totalNeed;
-int selected_node[N/2];//selected netnode
+int consumerNum; //消费节点数量
+int serverPrice;//服务器单价
+int need;   //服务器总需求
+vector<int> bw;     //存储每个节点的总带宽
+vector<int>meanBw;  //存储每个节点的平均带宽
+vector<int>meanPrice;//存储每个节点边的平均租用费
 int n=0; // vertex number
 int e[N]; // residual flow of the vertex
 int h[N]; // height of the vertex
@@ -45,35 +47,36 @@ int cmp(const PAIR &x, const PAIR &y)
 {
     return x.second > y.second;
 }
-void to_select()
-{
-    vector<PAIR>pair_vec;
-    for (map<int, int>::iterator map_iter = bwMap.begin(); map_iter != bwMap.end(); ++map_iter)
-    {
-        pair_vec.push_back(make_pair(map_iter->first, map_iter->second));
-    }
-    sort(pair_vec.begin(), pair_vec.end(), cmp);
-    /*
-    for (vector<PAIR>::iterator curr = pair_vec.begin(); curr != pair_vec.end(); ++curr)
-    {
-        cout  << curr->first << "," << curr->second << endl;
-    }
-    */
-     
-    vector<PAIR>::iterator curr = pair_vec.begin();
-    for(int i=0;i<n;i++)
-    {
-        
-        selected_node[i]=curr->first+1;
-        curr++;
-    }
-
-
-}
+//void to_select()
+//{
+//    vector<PAIR>pair_vec;
+//    for (map<int, int>::iterator map_iter = bwMap.begin(); map_iter != bwMap.end(); ++map_iter)
+//    {
+//        pair_vec.push_back(make_pair(map_iter->first, map_iter->second));
+//    }
+//    sort(pair_vec.begin(), pair_vec.end(), cmp);
+//    /*
+//    for (vector<PAIR>::iterator curr = pair_vec.begin(); curr != pair_vec.end(); ++curr)
+//    {
+//        cout  << curr->first << "," << curr->second << endl;
+//    }
+//    */
+//     
+//    vector<PAIR>::iterator curr = pair_vec.begin();
+//    for(int i=0;i<n;i++)
+//    {
+//        
+//        selected_node[i]=curr->first+1;
+//        curr++;
+//    }
+//
+//
+//}
 void process_data(const char * const filename){
     ifstream in;
     int m,u,v,bw,p;
     in.open(filename);
+
     if(!in)
     {
         cout<<"Error opening output stream!"<<endl;
@@ -83,10 +86,11 @@ void process_data(const char * const filename){
     //cout<<n<<","<<m<<","<<consumerNum<<endl;
     in>>serverPrice;
     cout<<serverPrice<<endl;
-    for(int i=1;i <=n;i++)
+    for(int i=0;i <=n;i++)
     {
-        bwMap.insert(pair<int, int>(i,0));
+        //bw.push_back(0);
     }
+    int *occurrence=new int[n+1];
     for(int i=0;i<m;i++)
     {
         in>>u>>v>>bw>>p;
@@ -95,122 +99,23 @@ void process_data(const char * const filename){
         //此处可构建图
         c[u+1][v+1]=bw;
         c[v+1][u+1]=bw;
-        bwMap[u+1]+=bw;
-        bwMap[v+1]+=bw;
+       // bw[u+1]+=bw;
+        //bw[v+1]+=bw;
         price[u+1][v+1]=p;
         price[v+1][u+1]=p;
     }
     n+=2;
-    totalNeed=0;
+    need=0;
     for(int i=0;i<consumerNum;i++)
     {
         in>>u>>v>>bw;
-        totalNeed+=bw;
+        need+=bw;
         c[v+1][n-1]=bw;
         //cout<<u<<","<<v<<","<<bw<<endl;
     }
     in.close();
+    
 }
-//void process_data(char * topo[MAX_EDGE_NUM], int line_num)
-//{
-//    int  u, v, w;
-//    printf("start\n");
-//    consumerNum = 0;
-//    int edgeNum=0;
-//    char *ch;
-//    int spaceCount = 0;
-//    
-//    ch = topo[0];
-//    
-//    while (*ch != '\0' && *ch != '\n' && *ch != '\r')
-//    {
-//        if (*ch == ' ')
-//        {
-//            ch++;
-//            spaceCount++;
-//            continue;
-//        }
-//        if (spaceCount == 0)
-//        {
-//            n=*ch - '0' + n * 10;
-//        }
-//        if (spaceCount == 1)
-//        {
-//            edgeNum=*ch - '0' + edgeNum * 10;
-//        }
-//        if (spaceCount == 2)
-//        {
-//            consumerNum = *ch - '0' + consumerNum * 10;
-//        }
-//        ch++;
-//    }
-//    n+=2;
-//    
-//    for(int i=0;i < n;i++)
-//    {
-//        all_map.insert(pair<int, int>(i,0));
-//    }
-//    for(int i=4;i<4+edgeNum;i++)
-//    {
-//        ch = topo[i];
-//        spaceCount = 0;
-//        u=0,v=0,w=0;
-//        while (*ch != '\0' && *ch != '\n' && *ch != '\r')
-//        {
-//            if (*ch == ' ')
-//            {
-//                ch++;
-//                spaceCount++;
-//                continue;
-//            }
-//            if (spaceCount == 0)
-//            {
-//                u=*ch - '0' + u * 10;
-//            }
-//            if (spaceCount == 1)
-//            {
-//                v=*ch - '0' + v * 10;
-//            }
-//            if (spaceCount == 2)
-//            {
-//                w = *ch - '0' + w * 10;
-//            }
-//            ch++;
-//        }
-//        
-//        all_map[u]++;
-//        all_map[v]++;
-//        c[u+1][v+1]=w;
-//        c[v+1][u+1]=w;
-//        //cout<<u<<","<<v<<","<<w<<endl;
-//    }
-//    for(int i=4+edgeNum+1;i<line_num;i++)
-//    {
-//        ch = topo[i];
-//        spaceCount=0;
-//        u=0,v=0,w=0;
-//        while (*ch != '\0' && *ch != '\n' && *ch != '\r')
-//        {
-//            if (*ch == ' ')
-//            {
-//                ch++;
-//                spaceCount++;
-//                continue;
-//            }
-//            if (spaceCount == 1)
-//            {
-//                v=*ch - '0' + v * 10;
-//            }
-//            if (spaceCount == 2)
-//            {
-//                w = *ch - '0' + w * 10;
-//            }
-//            ch++;
-//        }
-//        //cout<<v<<endl;
-//        c[v+1][n-1]=w;
-//    }
-//}
 
 
 inline void Push(int u, int v) // push flow from edge (u, v)

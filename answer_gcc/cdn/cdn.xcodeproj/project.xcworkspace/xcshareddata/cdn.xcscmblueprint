@@ -1,0 +1,30 @@
+{
+  "DVTSourceControlWorkspaceBlueprintPrimaryRemoteRepositoryKey" : "63B06BD1EBBD40298266E9CA182D9B6F0C7AED0E",
+  "DVTSourceControlWorkspaceBlueprintWorkingCopyRepositoryLocationsKey" : {
+
+  },
+  "DVTSourceControlWorkspaceBlueprintWorkingCopyStatesKey" : {
+    "63B06BD1EBBD40298266E9CA182D9B6F0C7AED0E" : 9223372036854775807,
+    "F8A9C8A0F31AE540E72FCD876F1D9EA1B23B43F6" : 9223372036854775807
+  },
+  "DVTSourceControlWorkspaceBlueprintIdentifierKey" : "5B5F1DC5-0A43-4331-ABBA-59CEC5B31C8D",
+  "DVTSourceControlWorkspaceBlueprintWorkingCopyPathsKey" : {
+    "63B06BD1EBBD40298266E9CA182D9B6F0C7AED0E" : "cdn\/",
+    "F8A9C8A0F31AE540E72FCD876F1D9EA1B23B43F6" : ".."
+  },
+  "DVTSourceControlWorkspaceBlueprintNameKey" : "cdn",
+  "DVTSourceControlWorkspaceBlueprintVersion" : 204,
+  "DVTSourceControlWorkspaceBlueprintRelativePathToProjectKey" : "cdn.xcodeproj",
+  "DVTSourceControlWorkspaceBlueprintRemoteRepositoriesKey" : [
+    {
+      "DVTSourceControlWorkspaceBlueprintRemoteRepositoryURLKey" : "https:\/\/github.com\/WangShuoICT\/cdn",
+      "DVTSourceControlWorkspaceBlueprintRemoteRepositorySystemKey" : "com.apple.dt.Xcode.sourcecontrol.Git",
+      "DVTSourceControlWorkspaceBlueprintRemoteRepositoryIdentifierKey" : "63B06BD1EBBD40298266E9CA182D9B6F0C7AED0E"
+    },
+    {
+      "DVTSourceControlWorkspaceBlueprintRemoteRepositoryURLKey" : "github.com:zhangning-github\/IMGforhuawei.git",
+      "DVTSourceControlWorkspaceBlueprintRemoteRepositorySystemKey" : "com.apple.dt.Xcode.sourcecontrol.Git",
+      "DVTSourceControlWorkspaceBlueprintRemoteRepositoryIdentifierKey" : "F8A9C8A0F31AE540E72FCD876F1D9EA1B23B43F6"
+    }
+  ]
+}
