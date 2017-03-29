@@ -23,8 +23,8 @@ int consumerNum; //消费节点数量
 int serverPrice;//服务器单价
 int need;   //服务器总需求
 vector<int> bw;     //存储每个节点的总带宽
-vector<int>meanBw;  //存储每个节点的平均带宽
-vector<int>meanPrice;//存储每个节点边的平均租用费
+vector<double> meanBw;  //存储每个节点的平均带宽
+vector<double> meanPrice;//存储每个节点边的平均租用费
 int n=0; // vertex number
 int e[N]; // residual flow of the vertex
 int h[N]; // height of the vertex
@@ -34,7 +34,6 @@ list<int> ev; // excess flow vertex
 list<int> edge[N]; // edge link list
 vector<int> mydege[N];
 bool flag[N]; // lable whether the vertex is in the flow list
-
 unsigned long diff_in_us(struct timeval *finishtime, struct timeval * starttime)
 {
     unsigned long long usec;
@@ -61,11 +60,11 @@ int cmp(const PAIR &x, const PAIR &y)
 //        cout  << curr->first << "," << curr->second << endl;
 //    }
 //    */
-//     
+//
 //    vector<PAIR>::iterator curr = pair_vec.begin();
 //    for(int i=0;i<n;i++)
 //    {
-//        
+//
 //        selected_node[i]=curr->first+1;
 //        curr++;
 //    }
@@ -74,9 +73,10 @@ int cmp(const PAIR &x, const PAIR &y)
 //}
 void process_data(const char * const filename){
     ifstream in;
-    int m,u,v,bw,p;
+    int m,u,v,b,p;
+    vector<int> occurrence;//出现次数
     in.open(filename);
-
+    
     if(!in)
     {
         cout<<"Error opening output stream!"<<endl;
@@ -85,32 +85,45 @@ void process_data(const char * const filename){
     in>>n>>m>>consumerNum;
     //cout<<n<<","<<m<<","<<consumerNum<<endl;
     in>>serverPrice;
-    cout<<serverPrice<<endl;
+    //cout<<serverPrice<<endl;
     for(int i=0;i <=n;i++)
     {
-        //bw.push_back(0);
+        bw.push_back(0);
+        //meanBw.push_back(0);
+        meanPrice.push_back(0);
+        occurrence.push_back(0);
     }
-    int *occurrence=new int[n+1];
+    
     for(int i=0;i<m;i++)
     {
-        in>>u>>v>>bw>>p;
+        in>>u>>v>>b>>p;
         
         //cout<<u<<","<<v<<","<<bw<<","<<p<<endl;
         //此处可构建图
-        c[u+1][v+1]=bw;
-        c[v+1][u+1]=bw;
-       // bw[u+1]+=bw;
-        //bw[v+1]+=bw;
+        occurrence[u]++;
+        occurrence[v]++;
+        c[u+1][v+1]=b;
+        c[v+1][u+1]=b;
+        bw[u+1]+=b;
+        bw[v+1]+=b;
+        meanPrice[u+1]+=p;
+        meanPrice[v+1]+=p;
         price[u+1][v+1]=p;
         price[v+1][u+1]=p;
+    }
+    meanBw.push_back(0);
+    for(int i=1;i<=n;i++)
+    {
+        meanBw.push_back(bw[i]/occurrence[i]);
+        meanPrice[i]=meanPrice[i]/occurrence[i];
     }
     n+=2;
     need=0;
     for(int i=0;i<consumerNum;i++)
     {
-        in>>u>>v>>bw;
-        need+=bw;
-        c[v+1][n-1]=bw;
+        in>>u>>v>>b;
+        need+=b;
+        c[v+1][n-1]=b;
         //cout<<u<<","<<v<<","<<bw<<endl;
     }
     in.close();
@@ -212,7 +225,7 @@ int Push_Relable()
         }
     }
     
-//     打印生成最大流后实际图中每个点的临界点信息
+    //     打印生成最大流后实际图中每个点的临界点信息
     /*
      for (int i=0; i<n; i++) {
      cout<<"顶点"<<i<<"->{";
@@ -221,7 +234,7 @@ int Push_Relable()
      }
      cout<<"}"<<endl;
      }
-    */
+     */
     
     /*打印流的信息
      for (int i=0; i<6; i++) {
@@ -271,108 +284,108 @@ list<path> getpath()
     //while(!isempty(mydege[0]))
     //{
     
-        int i=0;
-        while(i<mydege[0].size())
+    int i=0;
+    while(i<mydege[0].size())
+    {
+        vector<int>p;
+        vector<int>q;
+        p.push_back(0);
+        if (mydege[i].size()>0)
         {
-            vector<int>p;
-            vector<int>q;
-            p.push_back(0);
-            if (mydege[i].size()>0)
-            {
-                q.push_back(f[0][mydege[0][i]]);
-                int f1=10000;
-                int num[N]={0};
-                num[0]=i;
-                int visit[N]={0};
-                visit[0]=1;
-                visit[mydege[0][i]]=1;
-                p.push_back(mydege[0][i]);
-                
-                while(p.size()>1)
-                {
-                   
-                    
-                    if(num[p.back()]<mydege[p.back()].size())
-                    {
-                        if(mydege[p.back()][num[p.back()]]==n-1)
-                        {
-                            q.push_back(f[p.back()][mydege[p.back()][num[p.back()]]]);
-                            p.push_back(mydege[p.back()][num[p.back()]]);
-                            for(auto it =q.begin();it!=q.end();it++)
-                            {
-                                f1 = min(f1, *it);
-                            }
-                            dosomething(p, f1);
-                            tmp.p = p;
-                            tmp.f = f1;
-                            r.push_back(tmp);
-                            p.clear();
-                            q.clear();
-                            break;
-                        }
-                        else
-                        {
-                            if (visit[mydege[p.back()][num[p.back()]]]==0)
-                            {
+            q.push_back(f[0][mydege[0][i]]);
+            int f1=10000;
+            int num[N]={0};
+            num[0]=i;
+            int visit[N]={0};
+            visit[0]=1;
+            visit[mydege[0][i]]=1;
+            p.push_back(mydege[0][i]);
             
-                                visit[mydege[p.back()][num[p.back()]]]=1;
-                                q.push_back(f[p.back()][mydege[p.back()][num[p.back()]]]);
-                                int save=p.back();
-                                
-                                p.push_back(mydege[p.back()][num[p.back()]]);
-                                num[save]++;
-                            }
-                            else
-                                num[p.back()]++;
+            while(p.size()>1)
+            {
+                
+                
+                if(num[p.back()]<mydege[p.back()].size())
+                {
+                    if(mydege[p.back()][num[p.back()]]==n-1)
+                    {
+                        q.push_back(f[p.back()][mydege[p.back()][num[p.back()]]]);
+                        p.push_back(mydege[p.back()][num[p.back()]]);
+                        for(auto it =q.begin();it!=q.end();it++)
+                        {
+                            f1 = min(f1, *it);
                         }
+                        dosomething(p, f1);
+                        tmp.p = p;
+                        tmp.f = f1;
+                        r.push_back(tmp);
+                        p.clear();
+                        q.clear();
+                        break;
                     }
                     else
                     {
-                        visit[mydege[p.back()][num[p.back()]-1]]=0;//-1
-                        p.pop_back();
-                        q.pop_back();
-                        
+                        if (visit[mydege[p.back()][num[p.back()]]]==0)
+                        {
+                            
+                            visit[mydege[p.back()][num[p.back()]]]=1;
+                            q.push_back(f[p.back()][mydege[p.back()][num[p.back()]]]);
+                            int save=p.back();
+                            
+                            p.push_back(mydege[p.back()][num[p.back()]]);
+                            num[save]++;
+                        }
+                        else
+                            num[p.back()]++;
                     }
+                }
+                else
+                {
+                    visit[mydege[p.back()][num[p.back()]-1]]=0;//-1
+                    p.pop_back();
+                    q.pop_back();
                     
                 }
+                
             }
-            else
-                i++;
         }
+        else
+            i++;
+    }
     //}
     return r;
 }
 
 //获取路径和次路径分配的流量
 /*
-list<path> getpath() {
-    list<path> r;
-    path tmp;
-    vector<int> p;
-    while (!isempty(mydege[0])) {
-        p.push_back(0);
-        int f1 = INT_MAX;
-        while (p.back()!=n-1) {
-            int size = (int)p.size();
-            auto it = mydege[p[size-1]].begin();
-            while (find(p.begin(), p.end(), *it)!=p.end()) {
-                it++;
-            }
-            p.push_back(*it);
-            size++;
-            
-            f1 = min(f1, f[p[size-2]][p[size-1]]);
-        }
-        dosomething(p, f1);
-        tmp.p = p;
-        tmp.f = f1;
-        r.push_back(tmp);
-        p.clear();
-    }
-    
-    return r;
-}
-*/
+ list<path> getpath() {
+ list<path> r;
+ path tmp;
+ vector<int> p;
+ while (!isempty(mydege[0])) {
+ p.push_back(0);
+ int f1 = INT_MAX;
+ while (p.back()!=n-1) {
+ int size = (int)p.size();
+ auto it = mydege[p[size-1]].begin();
+ while (find(p.begin(), p.end(), *it)!=p.end()) {
+ it++;
+ }
+ p.push_back(*it);
+ size++;
+ 
+ f1 = min(f1, f[p[size-2]][p[size-1]]);
+ }
+ dosomething(p, f1);
+ tmp.p = p;
+ tmp.f = f1;
+ r.push_back(tmp);
+ p.clear();
+ }
+ 
+ return r;
+ }
+ */
 
 int main(int argc, char *argv[])
 {
@@ -393,11 +406,11 @@ int main(int argc, char *argv[])
         return -1;
     }
     
-//    gettimeofday(&start, NULL);
-      process_data(topo_file);
-//    gettimeofday(&finish, NULL);
-//    time_used = diff_in_us(&finish, &start);
-//    printf("\n***CPU version time used %ld us!***\n\n",time_used);
+    //    gettimeofday(&start, NULL);
+    process_data(topo_file);
+    //    gettimeofday(&finish, NULL);
+    //    time_used = diff_in_us(&finish, &start);
+    //    printf("\n***CPU version time used %ld us!***\n\n",time_used);
     //to_select();
     for(int i=1;i<n/3;i++)
     {
@@ -411,7 +424,7 @@ int main(int argc, char *argv[])
     time_used = diff_in_us(&finish, &start);
     printf("\n***CPU version time used %ld us!***\n\n",time_used);
     printf("Max Flow is %d\n",maxflow);
-
+    
     gettimeofday(&start, NULL);
     auto r = getpath();
     gettimeofday(&finish, NULL);
@@ -419,10 +432,10 @@ int main(int argc, char *argv[])
     printf("\n***CPU version time used by getpath is %ld us!***\n\n",time_used);
     long sum=0;
     for (auto it = r.begin(); it!=r.end(); it++) {
-//        for (auto it2 = it->p.begin(); it2!=it->p.end(); it2++) {
-//            cout<<*it2<<"->";
-//        }
-//        cout<<"带宽："<<it->f<<endl;
+        //        for (auto it2 = it->p.begin(); it2!=it->p.end(); it2++) {
+        //            cout<<*it2<<"->";
+        //        }
+        //        cout<<"带宽："<<it->f<<endl;
         sum+=it->f;
     }
     
