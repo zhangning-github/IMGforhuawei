@@ -23,6 +23,7 @@ int consumerNum; //消费节点数量
 int serverPrice;//服务器单价
 int need;   //服务器总需求
 vector<int> bw;     //存储每个节点的总带宽
+vector<int> sortbyBw;//将节点id按bw由大到小排序
 vector<double> meanBw;  //存储每个节点的平均带宽
 vector<double> meanPrice;//存储每个节点边的平均租用费
 int n=0; // vertex number
@@ -41,11 +42,7 @@ unsigned long diff_in_us(struct timeval *finishtime, struct timeval * starttime)
     usec += finishtime->tv_usec - starttime->tv_usec;
     return usec;
 }
-typedef pair<int, int> PAIR;
-int cmp(const PAIR &x, const PAIR &y)
-{
-    return x.second > y.second;
-}
+
 //void to_select()
 //{
 //    vector<PAIR>pair_vec;
@@ -71,15 +68,16 @@ int cmp(const PAIR &x, const PAIR &y)
 //
 //
 //}
-void process_data(const char * const filename){
+void process_data(const char * const filename,const char * const resultfile){
     ifstream in;
+    ofstream out;
     int m,u,v,b,p;
     vector<int> occurrence;//出现次数
     in.open(filename);
     
     if(!in)
     {
-        cout<<"Error opening output stream!"<<endl;
+        cout<<"Error opening input stream!"<<endl;
         return ;
     }
     in>>n>>m>>consumerNum;
@@ -100,8 +98,8 @@ void process_data(const char * const filename){
         
         //cout<<u<<","<<v<<","<<bw<<","<<p<<endl;
         //此处可构建图
-        occurrence[u]++;
-        occurrence[v]++;
+        occurrence[u+1]++;
+        occurrence[v+1]++;
         c[u+1][v+1]=b;
         c[v+1][u+1]=b;
         bw[u+1]+=b;
@@ -117,16 +115,39 @@ void process_data(const char * const filename){
         meanBw.push_back(bw[i]/occurrence[i]);
         meanPrice[i]=meanPrice[i]/occurrence[i];
     }
+    //get
+    vector<PAIR>pair_vec;
+    for(int i=1;i<=n;i++){
+        pair_vec.push_back(make_pair(i,bw[i]));
+    }
+    sort(pair_vec.begin(), pair_vec.end(), cmp);
+    for (vector<PAIR>::iterator curr = pair_vec.begin(); curr != pair_vec.end(); ++curr)
+    {
+        sortbyBw.push_back(curr->first);
+    }
+    
+    
     n+=2;
+    
     need=0;
+    out.open(resultfile);
+    if(!out)
+    {
+        cout<<"Error opening output stream!"<<endl;
+        return ;
+    }
+    out<<consumerNum<<"\n";
+    out<<"\n";
     for(int i=0;i<consumerNum;i++)
     {
         in>>u>>v>>b;
+        out<<v<<" "<<u<<" "<<b<<"\n";
         need+=b;
         c[v+1][n-1]=b;
         //cout<<u<<","<<v<<","<<bw<<endl;
     }
     in.close();
+    out.close();
     
 }
 
@@ -391,27 +412,25 @@ int main(int argc, char *argv[])
 {
     long time_used = 0;
     struct timeval start, finish;
-    char *topo[MAX_EDGE_NUM];
-    int line_num;
-    
     char *topo_file = argv[1];
-    
-    line_num = read_file(topo, MAX_EDGE_NUM, topo_file);
-    
-    printf("line num is :%d \n", line_num);
-    
-    if (line_num == 0)
-    {
-        printf("Please input valid topo file.\n");
-        return -1;
-    }
+    char *result_file = argv[2];
+//    line_num = read_file(topo, MAX_EDGE_NUM, topo_file);
+//    
+//    printf("line num is :%d \n", line_num);
+//    
+//    if (line_num == 0)
+//    {
+//        printf("Please input valid topo file.\n");
+//        return -1;
+//    }
     
     //    gettimeofday(&start, NULL);
-    process_data(topo_file);
+    process_data(topo_file,result_file);
     //    gettimeofday(&finish, NULL);
     //    time_used = diff_in_us(&finish, &start);
     //    printf("\n***CPU version time used %ld us!***\n\n",time_used);
-    //to_select();
+    
+    getTlist();
     for(int i=1;i<n/3;i++)
     {
         c[0][i]=10000;
@@ -442,11 +461,11 @@ int main(int argc, char *argv[])
     if(sum==maxflow)
         cout<<"right!"<<endl;
     
-    char *result_file = argv[2];
+   
     
-    deploy_server(topo, line_num, result_file);
+    //deploy_server(topo, line_num, result_file);
     
-    release_buff(topo, line_num);
+   // release_buff(topo, line_num);
     
     print_time("End");
     

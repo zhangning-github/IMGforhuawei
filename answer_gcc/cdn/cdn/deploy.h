@@ -37,9 +37,11 @@ struct path {
     vector<int> p;        //存储路径
     int f;              //存储当前路径分配的流量
 };
-void to_select();//select node
+typedef pair<int, int> PAIR;
 //void process_data(char * topo[MAX_EDGE_NUM], int line_num);
-void process_data(const char * const filename);
+void process_data(const char * const filename,const char * const resultfile);
+int cmp(const PAIR &x, const PAIR &y);
+void getTlist();
 inline void Push(int u, int v); // push flow from edge (u, v)
 void Relable(int u); // re-lable heght of vertex u
 void Discharge(int u);// discharge the residual flow of vertex u

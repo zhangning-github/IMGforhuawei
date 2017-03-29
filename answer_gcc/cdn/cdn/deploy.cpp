@@ -6,28 +6,47 @@
 
 
 using namespace std;
+double alpha=0.5;
+double beta=0.5;
 extern int consumerNum;            //消费节点总数
 extern vector<int> bw;            //存储每个节点的总带宽
 extern int need;                     //消费节点总需求
+extern vector<double> meanBw;  //存储每个节点的平均带宽
+extern vector<double> meanPrice;//存储每个节点边的平均租用费
 vector<int> Tlist;                //热度列表
+
 struct initial {
     int s;
     int cost;
 };
+int cmp(const PAIR &x, const PAIR &y)
+{
+    return x.second > y.second;
+}
 //生成热度列表
-list<int> getTlist() {
-    list<int> r;
-    return r;
-}
-//生成总带宽列表
-vector<int> getbw() {
+void getTlist() {
     vector<int> r;
-    return r;
+    vector<PAIR>pair_vec;
+    for(int i=1;i<meanBw.size();i++){
+        pair_vec.push_back(make_pair(i,meanBw[i]*alpha+meanPrice[i]*beta));
+    }
+    sort(pair_vec.begin(), pair_vec.end(), cmp);
+    for (vector<PAIR>::iterator curr = pair_vec.begin(); curr != pair_vec.end(); ++curr)
+    {
+        Tlist.push_back(curr->first);
+    }
 }
+
 //判断带宽是否满足
 bool isValid(int k) {
-    bool r;
-    return r;
+    int sum=0;
+    for(int i=1;i<=k;i++){
+        sum+=bw[Tlist[i]];
+    }
+    if(sum>=need)
+        return true;
+    else
+        return false;
 }
 //获取最大流及花费
 pair<int, int> Push_Relable1() {
@@ -38,8 +57,7 @@ initial getinitial() {
     initial r;
     int i;
     for (i=1; i<consumerNum; i++) {
-        auto tmp = isValid(i);
-        if(tmp) {
+        if(isValid(i)) {
             //现假定若前k个点无法跑出满足条件的最大流，则任意k个点的组合不满足需求（待商讨）。
             if(Push_Relable1().first==need) break;
         }
@@ -73,8 +91,6 @@ void updateT(vector<pair<int, int>>& tabuList, valueofOp value) {
 void Tabu_search() {
     //生成Tlist列表
     getTlist();
-    //生成bw（带宽）列表
-    getbw();
     //上述两步在cdn.cpp处理数据时完成，此处为逻辑完整性，列出，最终需删除
     
     int A;                          //渴望水平
