@@ -16,7 +16,6 @@
 #include<queue>
 #include<fstream>
 using namespace std;
-const int N = 900;
 //map<int,int> bwMap;//从1开始
 int price[N][N]={0}; //每条边的单位租用费
 int consumerNum; //消费节点数量
@@ -246,25 +245,6 @@ int Push_Relable()
         }
     }
     
-    //     打印生成最大流后实际图中每个点的临界点信息
-    /*
-     for (int i=0; i<n; i++) {
-     cout<<"顶点"<<i<<"->{";
-     for (auto it = mydege[i].begin(); it!=mydege[i].end(); it++) {
-     cout<<*it<<",";
-     }
-     cout<<"}"<<endl;
-     }
-     */
-    
-    /*打印流的信息
-     for (int i=0; i<6; i++) {
-     for (int j=0; j<6; j++) {
-     if(f[i][j]>0)
-     cout<<"("<<i<<","<<j<<"):"<<f[i][j]<<endl;
-     }
-     }
-     */
     return e[n-1];
 }
 
@@ -414,53 +394,36 @@ int main(int argc, char *argv[])
     struct timeval start, finish;
     char *topo_file = argv[1];
     char *result_file = argv[2];
-//    line_num = read_file(topo, MAX_EDGE_NUM, topo_file);
+    
+    process_data(topo_file,result_file);
+    initial r=getinitial();
+    //getTlist();
+
 //    
-//    printf("line num is :%d \n", line_num);
+//    gettimeofday(&start, NULL);
+//    int maxflow= Push_Relable();
+//    gettimeofday(&finish, NULL);
+//    time_used = diff_in_us(&finish, &start);
+//    printf("\n***CPU version time used %ld us!***\n\n",time_used);
+//    printf("Max Flow is %d\n",maxflow);
 //    
-//    if (line_num == 0)
-//    {
-//        printf("Please input valid topo file.\n");
-//        return -1;
+//    gettimeofday(&start, NULL);
+//    auto r = getpath();
+//    gettimeofday(&finish, NULL);
+//    time_used = diff_in_us(&finish, &start);
+//    printf("\n***CPU version time used by getpath is %ld us!***\n\n",time_used);
+//    long sum=0;
+//    for (auto it = r.begin(); it!=r.end(); it++) {
+//                for (auto it2 = it->p.begin(); it2!=it->p.end(); it2++) {
+//                    cout<<*it2<<"->";
+//                }
+//                cout<<"带宽："<<it->f<<endl;
+//        sum+=it->f;
 //    }
     
-    //    gettimeofday(&start, NULL);
-    process_data(topo_file,result_file);
-    //    gettimeofday(&finish, NULL);
-    //    time_used = diff_in_us(&finish, &start);
-    //    printf("\n***CPU version time used %ld us!***\n\n",time_used);
-    
-    getTlist();
-    for(int i=1;i<n/3;i++)
-    {
-        c[0][i]=10000;
-    }
-    
-    
-    gettimeofday(&start, NULL);
-    int maxflow= Push_Relable();
-    gettimeofday(&finish, NULL);
-    time_used = diff_in_us(&finish, &start);
-    printf("\n***CPU version time used %ld us!***\n\n",time_used);
-    printf("Max Flow is %d\n",maxflow);
-    
-    gettimeofday(&start, NULL);
-    auto r = getpath();
-    gettimeofday(&finish, NULL);
-    time_used = diff_in_us(&finish, &start);
-    printf("\n***CPU version time used by getpath is %ld us!***\n\n",time_used);
-    long sum=0;
-    for (auto it = r.begin(); it!=r.end(); it++) {
-        //        for (auto it2 = it->p.begin(); it2!=it->p.end(); it2++) {
-        //            cout<<*it2<<"->";
-        //        }
-        //        cout<<"带宽："<<it->f<<endl;
-        sum+=it->f;
-    }
-    
-    if(sum==maxflow)
-        cout<<"right!"<<endl;
-    
+//    if(sum==maxflow)
+//        cout<<"right!"<<endl;
+//    
    
     
     //deploy_server(topo, line_num, result_file);

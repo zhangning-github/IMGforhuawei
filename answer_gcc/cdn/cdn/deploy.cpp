@@ -13,12 +13,10 @@ extern vector<int> bw;            //存储每个节点的总带宽
 extern int need;                     //消费节点总需求
 extern vector<double> meanBw;  //存储每个节点的平均带宽
 extern vector<double> meanPrice;//存储每个节点边的平均租用费
+extern vector<int> sortbyBw;
+extern int c[N][N];
 vector<int> Tlist;                //热度列表
 
-struct initial {
-    int s;
-    int cost;
-};
 int cmp(const PAIR &x, const PAIR &y)
 {
     return x.second > y.second;
@@ -40,8 +38,18 @@ void getTlist() {
 //判断带宽是否满足
 bool isValid(int k) {
     int sum=0;
-    for(int i=1;i<=k;i++){
+    for(int i=0;i<k;i++){
         sum+=bw[Tlist[i]];
+    }
+    if(sum>=need)
+        return true;
+    else
+        return false;
+}
+bool isValid2(int k) {   //初始时只以带宽为标准来选点
+    int sum=0;
+    for(int i=0;i<k;i++){
+        sum+=sortbyBw[i];
     }
     if(sum>=need)
         return true;
@@ -57,13 +65,18 @@ initial getinitial() {
     initial r;
     int i;
     for (i=1; i<consumerNum; i++) {
-        if(isValid(i)) {
+        if(isValid2(i)) {
             //现假定若前k个点无法跑出满足条件的最大流，则任意k个点的组合不满足需求（待商讨）。
-            if(Push_Relable1().first==need) break;
+            c[0][sortbyBw[i-1]]=10000;
+            if(Push_Relable1().first==need)///&&&&&&&&&&需要修改
+                break;
         }
     }
     r.s = i;
-    r.cost = (Push_Relable1()).second;
+    if(i!=consumerNum)//i==consumerNum不需要再运行最大流，因为最优解是直接挂载
+    {
+        r.cost = Push_Relable1().second;
+    }
     return r;
 }
 struct valueofOp {
@@ -90,7 +103,7 @@ void updateT(vector<pair<int, int>>& tabuList, valueofOp value) {
 }
 void Tabu_search() {
     //生成Tlist列表
-    getTlist();
+   // getTlist();
     //上述两步在cdn.cpp处理数据时完成，此处为逻辑完整性，列出，最终需删除
     
     int A;                          //渴望水平
