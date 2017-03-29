@@ -9,7 +9,7 @@ using namespace std;
 extern int consumerNum;            //消费节点总数
 extern vector<int> bw;            //存储每个节点的总带宽
 extern int need;                     //消费节点总需求
-list<int> Tlist;                    //热度列表
+vector<int> Tlist;                //热度列表
 struct initial {
     int s;
     int cost;
@@ -71,11 +71,11 @@ void updateT(vector<pair<int, int>>& tabuList, valueofOp value) {
     
 }
 void Tabu_search() {
-//生成Tlist列表
+    //生成Tlist列表
     getTlist();
-//生成bw（带宽）列表
+    //生成bw（带宽）列表
     getbw();
-//上述两步在cdn.cpp处理数据时完成，此处为逻辑完整性，列出，最终需删除
+    //上述两步在cdn.cpp处理数据时完成，此处为逻辑完整性，列出，最终需删除
     
     int A;                          //渴望水平
     vector<int> bestSolu;             //历史最优解
@@ -87,19 +87,19 @@ void Tabu_search() {
     auto r = getinitial();                   //此处未初始化A
     A = r.cost;
     if(r.s==consumerNum) return;        //输出原始解
-
+    
     for (int i=0; i<r.s; i++) {
         curBestSolu.push_back(bw[i]);
     }
     
     for (int k=r.s; k<consumerNum; k++) {                       //insert操作的循环
         
-//针对每一种insert最优情况，做一组swap操作
+        //针对每一种insert最优情况，做一组swap操作
         mincost=INT_MAX;
         op = getswapN(curBestSolu);
         valueofOp tmp;
-
-//swap中有不在禁忌列表中的情况
+        
+        //swap中有不在禁忌列表中的情况
         if(!isallin(op, tabuList)) {
             //选次优解待定
             
@@ -114,7 +114,7 @@ void Tabu_search() {
             
             //循环跳出之后，则S为候选解中最优解，cost为其花费。
             if(mincost<A) {
-               bestSolu = curBestSolu;
+                bestSolu = curBestSolu;
                 A = mincost;
             }
             else {
@@ -122,9 +122,9 @@ void Tabu_search() {
             }
             updateT(tabuList, tmp);
         }
-//上组swap操作结束
+        //上组swap操作结束
         
-//对于每一种insert求出其候选解的情况
+        //对于每一种insert求出其候选解的情况
         op = getinsertN(curBestSolu);
         if(isallin(op, tabuList)) break;           //如果所有insert的候选解都在T中，则停止整个算法
         mincost = INT_MAX;
@@ -145,7 +145,7 @@ void Tabu_search() {
             dosomething();
         }
         updateT(tabuList, tmp_insert);
-//求insert候选解结束
+        //求insert候选解结束
         
     }
 }
