@@ -343,7 +343,10 @@ list<path> getpath()
                 }
                 else
                 {
-                    visit[mydege[p.back()][num[p.back()]-1]]=0;//-1
+                    //visit[mydege[p.back()][num[p.back()]-1]]=0;//-1
+                    visit[p.back()]=0;
+                    num[p.back()]=0;
+                    
                     p.pop_back();
                     q.pop_back();
                     
