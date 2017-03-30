@@ -49,7 +49,7 @@ void Discharge(int u);// discharge the residual flow of vertex u
 void Init_PreFlow();
 maxflow_and_cost Push_Relable();
 void dosomething(vector<int>& p, int f1);
-valueofOp dosomething2(vector<Solution_and_cost> nerbou);
+valueofOp dosomething2(vector<Solution_and_cost> nerbou, vector<pair<int, int>> tabuList);
 list<path> getpath();
 void Tabu_search();
 void deploy_server(char * graph[MAX_EDGE_NUM], int edge_num, char * filename);

@@ -150,20 +150,20 @@ bool isallin(vector<valueofOp> N, vector<pair<int, int>> tubuList) {
     return true;
 }
 //step4
-valueofOp dosomething2(vector<Solution_and_cost> nerbou) {
+valueofOp dosomething2(vector<Solution_and_cost> nerbou, vector<pair<int, int>> tabuList) {
     valueofOp r;
     int tmp;
-//    for(auto it:nerbou) {
-//        if(it.swap.first!=-1) {
-//            tmp = it.swap.first;
-//            it.swap.first = it.swap.second;
-//            it.swap.second = tmp;
-//        }
-//        if(find(Tlist.begin(), Tlist.end(), it.swap)!=Tlist.end()) continue;
-//        r.solution = it.solution;
-//        r.swap = it.swap;
-//        break;
-//    }
+    for(auto it:nerbou) {
+        if(it.swap.first!=-1) {
+            tmp = it.swap.first;
+            it.swap.first = it.swap.second;
+            it.swap.second = tmp;
+        }
+        if(find(tabuList.begin(), tabuList.end(), it.swap)!=tabuList.end()) continue;
+        r.solution = it.solution;
+        r.swap = it.swap;
+        break;
+    }
     return r;
 }
 //更新禁忌列表
@@ -175,7 +175,6 @@ void updateT(vector<pair<int, int>>& tabuList, valueofOp value) {
 }
 void Tabu_search() {
     //生成Tlist列表
-    getTlist();
     //上述两步在cdn.cpp处理数据时完成，此处为逻辑完整性，列出，最终需删除
     
     int A;                          //渴望水平
@@ -226,7 +225,7 @@ void Tabu_search() {
             }
             else {
                 sort(nerbou.begin(), nerbou.end(), cmp1);
-                updateT(tabuList, dosomething2(nerbou));
+                updateT(tabuList, dosomething2(nerbou,tabuList));
             }
             nerbou.clear();
         }
@@ -257,7 +256,7 @@ void Tabu_search() {
         }
         else {
             sort(nerbou.begin(), nerbou.end(), cmp1);
-            updateT(tabuList, dosomething2(nerbou));
+            updateT(tabuList, dosomething2(nerbou,tabuList));
         }
         
         //求insert候选解结束
