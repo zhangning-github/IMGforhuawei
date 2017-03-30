@@ -224,8 +224,11 @@ void Init_PreFlow()
         }
 }
 
-int Push_Relable()
+maxflow_and_cost Push_Relable()
 {
+    maxflow_and_cost r;
+    int maxflow=0;                      //存储最大流
+    int cost=0;                         //存储对应的cost
     Init_PreFlow();
     while(!ev.empty())
     {
@@ -239,14 +242,18 @@ int Push_Relable()
         for (int v = u+1; v<n; v++) {
             if(f[u][v]>0) {
                 mydege[u].push_back(v);
+                cost+=f[u][v]*price[u][v];
             }
             if(f[v][u]>0) {
                 mydege[v].push_back(u);
+                cost+=f[v][u]*price[v][u];
             }
         }
     }
-    
-    return e[n-1];
+    maxflow = e[n-1];
+    r.maxflow = maxflow;
+    r.cost = cost;
+    return r;
 }
 
 void dosomething(vector<int>& p, int f1) {

@@ -8,6 +8,8 @@
 using namespace std;
 double alpha=0.5; //热度列表需用到的参数
 double beta=0.5;  //热度列表需用到的参数
+int tabuList_len=3;                      //禁忌列表大小，初始化为3
+int Nerbour_len;                    //存储候选解集的大小
 extern int consumerNum;            //消费节点总数
 extern vector<int> bw;            //存储每个节点的总带宽
 extern int need;                     //消费节点总需求
@@ -83,12 +85,57 @@ struct valueofOp {
     vector<int> solution;
     pair<int, int> swap;                //查找时不应有顺序因素影响
 };
+//找到由于swap操作产生的候选解集,候选解集的大小为solution的长度，候选集为通过solution中的每个元素
+//与Tlist(热度列表)中不在solution中且热度最高的点交换得到。
 vector<valueofOp> getswapN(vector<int> solution) {
     vector<valueofOp> r;
+    int depot_wait_exchange=0;           //存储Tlist(热度列表)中不在solution中且热度最高的点
+    Nerbour_len = (int)solution.size();
+    //此处未考虑Tlist中已无点可交换的情况
+    for(auto value:Tlist) {
+        if(find(solution.begin(), solution.end(), value)==solution.end()) {
+            depot_wait_exchange = value;
+            break;
+        }
+    }
+    valueofOp tmp;
+    pair<int, int> swap;
+    for (int i=0; i<Nerbour_len; i++) {
+        tmp.solution = solution;
+        tmp.solution[i] = depot_wait_exchange;
+        
+        swap.first = solution[i];
+        swap.second = depot_wait_exchange;
+        tmp.swap = swap;
+        
+        r.push_back(tmp);
+    }
+    
     return r;
 }
+//找到由于insert操作产生的候选解集
 vector<valueofOp> getinsertN(vector<int> solution) {
     vector<valueofOp> r;
+    //候选解的大小
+    Nerbour_len = (int)min(solution.size(), Tlist.size()-solution.size());
+    
+    valueofOp tmp;
+    pair<int, int> swap;
+    int count=0;
+    for (int i=0; i<(int)Tlist.size()&&count<Nerbour_len; i++) {
+        if(find(solution.begin(), solution.end(), Tlist[i])!=solution.end()) {
+            tmp.solution = solution;
+            tmp.solution.push_back(Tlist[i]);
+            
+            swap.first = -1;
+            swap.second = Tlist[i];
+            tmp.swap = swap;
+            
+            r.push_back(tmp);
+            count++;
+        }
+    }
+    
     return r;
 }
 bool isallin(vector<valueofOp> N, vector<pair<int, int>> tubuList) {
@@ -98,9 +145,14 @@ bool isallin(vector<valueofOp> N, vector<pair<int, int>> tubuList) {
 void dosomething() {
     
 }
+//更新禁忌列表
 void updateT(vector<pair<int, int>>& tabuList, valueofOp value) {
-    
+    if(tabuList.size()>=tabuList_len) {
+        tabuList.erase(tabuList.begin());
+    }
+    tabuList.push_back(value.swap);
 }
+
 void Tabu_search() {
     //生成Tlist列表
    // getTlist();

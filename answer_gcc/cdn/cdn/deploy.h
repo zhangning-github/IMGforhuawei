@@ -18,6 +18,10 @@ struct initial {
     int s;
     int cost;
 };
+struct maxflow_and_cost {
+    int maxflow=0;
+    int cost=0;
+};
 const int N = 900;
 map<int,int> node_consumer; //记录consumer和与其相连的点（<node,consumer>）
 typedef pair<int, int> PAIR;
@@ -30,7 +34,7 @@ inline void Push(int u, int v); // push flow from edge (u, v)
 void Relable(int u); // re-lable heght of vertex u
 void Discharge(int u);// discharge the residual flow of vertex u
 void Init_PreFlow();
-int Push_Relable();
+maxflow_and_cost Push_Relable();
 void dosomething(vector<int>& p, int f1);
 list<path> getpath();
 void Tabu_search();
