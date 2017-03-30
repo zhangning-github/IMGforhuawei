@@ -10,12 +10,13 @@
 #include "lib_io.h"
 #include "lib_time.h"
 #include <sys/time.h>
-#include<stdio.h>
-#include<iostream>
+//#include<stdio.h>
+//#include<fstream>
+//#include<iostream>
+//#include<queue>
 
-#include<queue>
-#include<fstream>
 using namespace std;
+map<int,int> node_consumer; //记录consumer和与其相连的点（<node,consumer>）
 //map<int,int> bwMap;//从1开始
 int price[N][N]={0}; //每条边的单位租用费
 int consumerNum; //消费节点数量
@@ -194,11 +195,21 @@ void Discharge(int u) // discharge the residual flow of vertex u
 
 void Init_PreFlow()
 {
+    //清零
+    memset(h, 0, sizeof(h));
+    memset(e, 0 , sizeof(e));
     ev.clear();
+    for(int i=0;i<=n;i++)
+    {
+        edge[i].clear();
+        mydege[i].clear();
+    }
     h[0] = n;
     e[0] = 0;
     memset(flag, 0, sizeof(flag));
     memset(f, 0 , sizeof(f));
+    
+    
     flag[0] = flag[n-1] = true;
     for (int u = 1; u < n; u++)
     {
@@ -401,8 +412,8 @@ list<path> getpath()
 
 int main(int argc, char *argv[])
 {
-    long time_used = 0;
-    struct timeval start, finish;
+   // long time_used = 0;
+   // struct timeval start, finish;
     char *topo_file = argv[1];
     char *result_file = argv[2];
     

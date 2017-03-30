@@ -1,13 +1,14 @@
 #include "deploy.h"
 #include <stdio.h>
 #include <stdlib.h>
-#include <queue>
-#include <iostream>
-
+//#include <queue>
+//#include <iostream>
+//#include<algorithm>
 
 using namespace std;
 double alpha=0.5; //热度列表需用到的参数
 double beta=0.5;  //热度列表需用到的参数
+extern map<int,int> node_consumer; //记录consumer和与其相连的点（<node,consumer>）
 int tabuList_len=3;                      //禁忌列表大小，初始化为3
 int Nerbour_len;                    //存储候选解集的大小
 extern int consumerNum;            //消费节点总数
@@ -22,6 +23,9 @@ vector<int> Tlist;                //热度列表
 int cmp(const PAIR &x, const PAIR &y)
 {
     return x.second > y.second;
+}
+int cmp1(const Solution_and_cost &x, const Solution_and_cost &y) {
+    return x.cost<y.cost;
 }
 //生成热度列表
 void getTlist() {
@@ -58,11 +62,7 @@ bool isValid2(int k) {   //初始时只以带宽为标准来选点
     else
         return false;
 }
-//获取最大流及花费
-pair<int, int> Push_Relable1() {
-    pair<int, int> r;
-    return r;
-}
+
 initial getinitial() {
     initial r;
     int i;
@@ -70,21 +70,18 @@ initial getinitial() {
         if(isValid2(i)) {
             //现假定若前k个点无法跑出满足条件的最大流，则任意k个点的组合不满足需求（待商讨）。
             c[0][sortbyBw[i-1]]=10000;
-            if(Push_Relable1().first==need)///&&&&&&&&&&需要修改
+            if(Push_Relable().maxflow==need)///&&&&&&&&&&需要修改
                 break;
         }
     }
     r.s = i;
     if(i!=consumerNum)//i==consumerNum不需要再运行最大流，因为最优解是直接挂载
     {
-        r.cost = Push_Relable1().second;
+        r.cost = Push_Relable().cost;
     }
     return r;
 }
-struct valueofOp {
-    vector<int> solution;
-    pair<int, int> swap;                //查找时不应有顺序因素影响
-};
+
 //找到由于swap操作产生的候选解集,候选解集的大小为solution的长度，候选集为通过solution中的每个元素
 //与Tlist(热度列表)中不在solution中且热度最高的点交换得到。
 vector<valueofOp> getswapN(vector<int> solution) {
@@ -138,12 +135,36 @@ vector<valueofOp> getinsertN(vector<int> solution) {
     
     return r;
 }
+//查看候选解集中的元素是否都在禁忌列表
 bool isallin(vector<valueofOp> N, vector<pair<int, int>> tubuList) {
+    int tmp;
+    for(auto it:N) {
+        if(it.swap.first!=-1) {
+            tmp = it.swap.first;
+            it.swap.first = it.swap.second;
+            it.swap.second = tmp;
+        }
+        if(find(tubuList.begin(), tubuList.end(), it.swap)==tubuList.end())
+            return false;
+    }
     return true;
 }
 //step4
-void dosomething() {
-    
+valueofOp dosomething2(vector<Solution_and_cost> nerbou) {
+    valueofOp r;
+    int tmp;
+//    for(auto it:nerbou) {
+//        if(it.swap.first!=-1) {
+//            tmp = it.swap.first;
+//            it.swap.first = it.swap.second;
+//            it.swap.second = tmp;
+//        }
+//        if(find(Tlist.begin(), Tlist.end(), it.swap)!=Tlist.end()) continue;
+//        r.solution = it.solution;
+//        r.swap = it.swap;
+//        break;
+//    }
+    return r;
 }
 //更新禁忌列表
 void updateT(vector<pair<int, int>>& tabuList, valueofOp value) {
@@ -152,10 +173,9 @@ void updateT(vector<pair<int, int>>& tabuList, valueofOp value) {
     }
     tabuList.push_back(value.swap);
 }
-
 void Tabu_search() {
     //生成Tlist列表
-   // getTlist();
+    getTlist();
     //上述两步在cdn.cpp处理数据时完成，此处为逻辑完整性，列出，最终需删除
     
     int A;                          //渴望水平
@@ -165,9 +185,10 @@ void Tabu_search() {
     vector<valueofOp> op;             //存储swap候选解及得到候选解所做操作
     //vector<valueof_insertN> insertN;         //存储inserN候选解
     vector<pair<int, int>> tabuList;               //存储禁忌列表
-    auto r = getinitial();                   //此处未初始化A
+    auto r = getinitial();
     A = r.cost;
     if(r.s==consumerNum) return;        //输出原始解
+    vector<Solution_and_cost> nerbou;           //存储候选解及其花费（按花费从高到低排序）
     
     for (int i=0; i<r.s; i++) {
         curBestSolu.push_back(bw[i]);
@@ -183,9 +204,13 @@ void Tabu_search() {
         //swap中有不在禁忌列表中的情况
         if(!isallin(op, tabuList)) {
             //选次优解待定
-            
+            Solution_and_cost scost_tmp;
             for(auto it:op) {
-                auto tmpcost=(Push_Relable1()).second;
+                auto tmpcost=(Push_Relable()).cost;
+                scost_tmp.solution = it.solution;
+                scost_tmp.cost = tmpcost;
+                scost_tmp.swap = it.swap;
+                nerbou.push_back(scost_tmp);
                 if(mincost<tmpcost) {
                     mincost=tmpcost;
                     curBestSolu=it.solution;
@@ -197,11 +222,13 @@ void Tabu_search() {
             if(mincost<A) {
                 bestSolu = curBestSolu;
                 A = mincost;
+                updateT(tabuList, tmp);
             }
             else {
-                dosomething();
+                sort(nerbou.begin(), nerbou.end(), cmp1);
+                updateT(tabuList, dosomething2(nerbou));
             }
-            updateT(tabuList, tmp);
+            nerbou.clear();
         }
         //上组swap操作结束
         
@@ -210,8 +237,13 @@ void Tabu_search() {
         if(isallin(op, tabuList)) break;           //如果所有insert的候选解都在T中，则停止整个算法
         mincost = INT_MAX;
         valueofOp tmp_insert;
+        Solution_and_cost scost_tmp;
         for(auto valueof_insertN:op) {
-            auto tmpcost = (Push_Relable1()).second;
+            auto tmpcost = (Push_Relable()).cost;
+            scost_tmp.solution = valueof_insertN.solution;
+            scost_tmp.cost = tmpcost;
+            scost_tmp.swap = valueof_insertN.swap;
+            nerbou.push_back(scost_tmp);
             if(mincost<tmpcost) {
                 mincost = tmpcost;
                 curBestSolu = valueof_insertN.solution;
@@ -221,11 +253,13 @@ void Tabu_search() {
         if(mincost<A) {
             bestSolu = curBestSolu;
             A = mincost;
+            updateT(tabuList, tmp_insert);
         }
         else {
-            dosomething();
+            sort(nerbou.begin(), nerbou.end(), cmp1);
+            updateT(tabuList, dosomething2(nerbou));
         }
-        updateT(tabuList, tmp_insert);
+        
         //求insert候选解结束
         
     }

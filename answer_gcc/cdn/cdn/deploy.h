@@ -2,11 +2,16 @@
 #define __ROUTE_H__
 
 #include "lib_io.h"
+//#include <stdio.h>
+//#include <stdlib.h>
+#include <queue>
+#include <iostream>
 #include<list>
 #include<map>
 #include<vector>
 #include<algorithm>
 #include<cstring>
+#include<fstream>
 using namespace std;
 
 struct path {
@@ -22,10 +27,18 @@ struct maxflow_and_cost {
     int maxflow=0;
     int cost=0;
 };
+struct Solution_and_cost {
+    vector<int> solution;
+    pair<int, int> swap;
+    int cost;
+};
+struct valueofOp {
+    vector<int> solution;
+    pair<int, int> swap;                //查找时不应有顺序因素影响
+};
 const int N = 900;
-map<int,int> node_consumer; //记录consumer和与其相连的点（<node,consumer>）
+
 typedef pair<int, int> PAIR;
-//void process_data(char * topo[MAX_EDGE_NUM], int line_num);
 void process_data(const char * const filename,const char * const resultfile);
 int cmp(const PAIR &x, const PAIR &y);
 void getTlist();
@@ -36,6 +49,7 @@ void Discharge(int u);// discharge the residual flow of vertex u
 void Init_PreFlow();
 maxflow_and_cost Push_Relable();
 void dosomething(vector<int>& p, int f1);
+valueofOp dosomething2(vector<Solution_and_cost> nerbou);
 list<path> getpath();
 void Tabu_search();
 void deploy_server(char * graph[MAX_EDGE_NUM], int edge_num, char * filename);
