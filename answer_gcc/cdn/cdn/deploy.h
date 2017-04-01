@@ -12,6 +12,7 @@
 #include<algorithm>
 #include<cstring>
 #include<fstream>
+#include <sys/time.h>
 using namespace std;
 
 struct path {
@@ -22,10 +23,6 @@ struct path {
 struct initial {
     int s;
     int cost;
-};
-struct maxflow_and_cost {
-    int maxflow=0;
-    int cost=0;
 };
 struct Solution_and_cost {
     vector<int> solution;
@@ -40,28 +37,32 @@ struct H_tral1 {
     int vextec;
     int Hierarchy;
 };
-const int N = 900;
+struct hot_v {
+    int vertex;
+    int hot;
+};
+
+const int N = 1000;
 
 typedef pair<int, int> PAIR;
 void process_data(const char * const filename,const char * const resultfile);
 int cmp(const PAIR &x, const PAIR &y);
-void change_c(vector<int>solution);
 void getsortbyBwandE();
 void getTlist();
 initial getinitial();
-inline void Push(int u, int v); // push flow from edge (u, v)
-void Relable(int u); // re-lable heght of vertex u
-void Discharge(int u);// discharge the residual flow of vertex u
-void Init_PreFlow();
-maxflow_and_cost Push_Relable();
+
 void dosomething(vector<int>& p, int f1);
 valueofOp dosomething2(vector<Solution_and_cost> nerbou, vector<pair<int, int>> tabuList);
 list<path> getpath();
-vector<int>Tabu_search(initial r);
+vector<int>Tabu_search(initial r, long long time);
 void writeResult(char * result_file,vector<int>solution);
 void deploy_server(char * graph[MAX_EDGE_NUM], int edge_num, char * filename);
 void get_H_tral();
 void getsortByH_E();
-
-
+void clear_graph();
+PAIR mcmf(int s, int t);
+void init_graph(vector<int> select);
+vector<valueofOp> getdropN(vector<int> solution);
+void sortbyflow_edge(vector<int>& solution);
+long long diff_in_us(struct timeval *finishtime, struct timeval * starttime);
 #endif

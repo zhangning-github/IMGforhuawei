@@ -10,12 +10,9 @@
 #include "lib_io.h"
 #include "lib_time.h"
 #include <sys/time.h>
-//#include<stdio.h>
-//#include<fstream>
-//#include<iostream>
-//#include<queue>
 
 using namespace std;
+const int COST=10000;
 vector<int> occurrence;//出现次数
 map<int,int> node_consumer; //记录consumer和与其相连的点（<node,consumer>）
 //map<int,int> bwMap;//从1开始
@@ -29,19 +26,145 @@ vector<int> sortbyBwandE;
 vector<double> meanBw;  //存储每个节点的平均带宽
 vector<double> meanPrice;//存储每个节点边的平均租用费
 int n=0; // vertex number
-int e[N]; // residual flow of the vertex
-int h[N]; // height of the vertex
+//int e[N]; // residual flow of the vertex
+//int h[N]; // height of the vertex
 int c[N][N]={0}; // capacity of the edge
 int f[N][N]; // flow of the edge
-list<int> ev; // excess flow vertex
-list<int> edge[N]; // edge link list
+//list<int> ev; // excess flow vertex
+//list<int> edge[N]; // edge link list
 vector<int> mydege[N];
 bool flag[N]; // lable whether the vertex is in the flow list
 extern vector<H_tral1> Hierarchy_traversal;    //存储层次遍历结果
 vector<int>sortByH_E;// 以层次和边数来排序
-unsigned long diff_in_us(struct timeval *finishtime, struct timeval * starttime)
+vector<int> selected;     //被选为挂载服务器的节点
+struct Edge {
+    int to, rev, cap, cost;
+    Edge(int t, int c, int cc, int r) :to(t), cap(c), cost(cc), rev(r){}
+};
+vector<Edge>saveG[N];
+vector<Edge>G[N];
+
+const int inf = 0x33333333;
+
+
+PAIR mcmf(int s, int t) {
+    //init
+    static int h[N];        //标号
+    int flow = 0, cost = 0;
+    //solve
+    while(true) {
+        //dijkstra init
+        static int dist[N]; //距离
+        static int pv[N];   //上一个顶点
+        static int pe[N];   //上一条弧
+        memset(dist, 0x33, sizeof dist);
+        dist[s] = 0;
+        priority_queue< PAIR, vector<PAIR>, greater<PAIR> > q;
+        q.push(PAIR(0, s));
+        //dijkstra
+        while(!q.empty()) {
+            PAIR x = q.top();
+            q.pop();
+            int u = x.second;
+            if(x.first != dist[u]) {
+                continue;
+            }
+            if(u == t) {
+                break;
+            }
+            for(int i = 0; i < (int)G[u].size(); ++i) {
+                Edge &e = G[u][i];
+                int newcost = e.cost + h[u] - h[e.to];
+                if(e.cap > 0 && dist[e.to] > dist[u] + newcost) {
+                    dist[e.to] = dist[u] + newcost;
+                    q.push(PAIR(dist[e.to], e.to));
+                    pv[e.to] = u;
+                    pe[e.to] = i;
+                }
+            }
+        }
+        if(dist[t] == inf) {
+            break;
+        }
+        //augment
+        for(int i = 0; i < n; ++i) {
+            h[i] = min(h[i] + dist[i], inf);
+        }
+        int newflow = inf;
+        for(int x = t; x != s; x = pv[x]) {
+            Edge &e = G[pv[x]][pe[x]];
+            newflow = min(newflow, e.cap);
+        }
+        flow += newflow;
+        cost += newflow * h[t];
+        for(int x = t; x != s; x = pv[x]) {
+            Edge &e = G[pv[x]][pe[x]];
+            e.cap -= newflow;
+            G[x][e.rev].cap += newflow;
+        }
+    }
+    return make_pair(flow, cost);
+}
+
+void addedge(int from, int to, int cap, int cost)
 {
-    unsigned long long usec;
+    G[from].push_back(Edge( to, cap, cost, (int)G[to].size()));
+    G[to].push_back(Edge( from, 0, -cost, (int)G[from].size() - 1 ));
+}
+
+
+void init_graph(vector<int> select){
+    clear_graph();
+    for(int i=0;i<select.size();i++){
+        addedge(0, select[i], COST,0);
+        //G[0].push_back(Edge(select[i],10000,0,G[select[i]].size()));
+    }
+    for(int i=1;i<n;i++){
+        for(int j=0;j<saveG[i].size();j++)
+            addedge(i, saveG[i][j].to, saveG[i][j].cap,saveG[i][j].cost);
+    }
+    
+}
+void clear_graph(){
+    for(int i=0;i<n;i++){
+        G[i].clear();
+    }
+    memset(f,0,sizeof(int)*N*N);
+    
+    
+    
+}
+void getfAndPath()
+{
+    for(auto it=G[0].begin();it!=G[0].end();it++){
+        f[0][it->to]=COST-it->cap;
+    }
+    for(int i=1;i<n;i++) {
+        for(auto it=G[i].begin();it!=G[i].end();it++){
+            if(it->cost>=0)
+                f[i][it->to]=c[i][it->to]-it->cap;
+        }
+    }
+    for (int u = 0; u<n; u++) {
+        for (int v = u+1; v<n; v++) {
+            if(f[u][v]>0) {
+                mydege[u].push_back(v);
+            }
+            if(f[v][u]>0) {
+                mydege[v].push_back(u);
+            }
+        }
+    }
+}
+
+
+
+
+
+
+long long diff_in_us(struct timeval *finishtime, struct timeval * starttime)
+{
+    long long usec;
     usec = (finishtime->tv_sec - starttime->tv_sec)*1000000;
     usec += finishtime->tv_usec - starttime->tv_usec;
     return usec;
@@ -88,6 +211,10 @@ void process_data(const char * const filename,const char * const resultfile){
         meanPrice[v+1]+=p;
         price[u+1][v+1]=p;
         price[v+1][u+1]=p;
+        
+        
+        saveG[u+1].push_back(Edge(v+1,b,p,(int)saveG[v+1].size()));
+        saveG[v+1].push_back(Edge(u+1,b,p,(int)saveG[u+1].size()));
     }
     meanBw.push_back(0);
     for(int i=1;i<=n;i++)
@@ -125,126 +252,17 @@ void process_data(const char * const filename,const char * const resultfile){
         node_consumer.insert(pair<int,int>(v+1,u+1));
         need+=b;
         c[v+1][n-1]=b;
+        
+        saveG[v+1].push_back(Edge(n-1,b,0,saveG[n-1].size()));
         //cout<<u<<","<<v<<","<<bw<<endl;
+        selected.push_back(v+1);
     }
     in.close();
     out.close();
     
 }
 
-inline void Push(int u, int v) // push flow from edge (u, v)
-{
-    int df = min(e[u], c[u][v] - f[u][v]);
-    f[u][v] += df;
-    f[v][u] = -f[u][v];
-    e[u] -= df;
-    e[v] += df;
-}
 
-void Relable(int u) // re-lable heght of vertex u
-{
-    h[u] = n * 2 - 1;
-    for(list<int>::iterator iter = edge[u].begin(); iter != edge[u].end(); iter++)
-    {
-        if(c[u][*iter] > f[u][*iter] && h[*iter] < h[u])
-            h[u] = h[*iter];
-    }
-    h[u]++;
-}
-
-void Discharge(int u) // discharge the residual flow of vertex u
-{
-    list<int>::iterator iter = edge[u].begin();
-    while(e[u] > 0)
-    {
-        if(iter == edge[u].end())
-        {
-            Relable(u);
-            iter = edge[u].begin();
-        }
-        if(h[u] == h[*iter] + 1 && c[u][*iter] > f[u][*iter])
-        {
-            Push(u, *iter);
-            if(e[*iter] > 0 && !flag[*iter])
-                ev.push_back(*iter);
-        }
-        ++iter;
-    }
-}
-
-void Init_PreFlow()
-{
-    //清零
-    memset(h, 0, sizeof(h));
-    memset(e, 0 , sizeof(e));
-    ev.clear();
-    for(int i=0;i<=n;i++)
-    {
-        edge[i].clear();
-        mydege[i].clear();
-    }
-    h[0] = n;
-    e[0] = 0;
-    memset(flag, 0, sizeof(flag));
-    memset(f, 0 , sizeof(f));
-    
-    
-    flag[0] = flag[n-1] = true;
-    for (int u = 1; u < n; u++)
-    {
-        f[0][u] = c[0][u];
-        f[u][0] = -f[0][u];
-        e[u] = c[0][u];
-        if(e[u] > 0 && !flag[u])
-        {
-            ev.push_back(u);
-            flag[u] = true;
-        }
-    }
-    
-    // construct link list
-    for(int u = 0; u < n; u++)
-        for(int v = u + 1; v < n; v++)
-        {
-            if(c[u][v] > 0 || c[v][u] > 0)
-            {
-                edge[u].push_back(v);
-                edge[v].push_back(u);
-            }
-        }
-}
-
-maxflow_and_cost Push_Relable()
-{
-    maxflow_and_cost r;
-    int maxflow=0;                      //存储最大流
-    int cost=0;                         //存储对应的cost
-    Init_PreFlow();
-    while(!ev.empty())
-    {
-        int u = ev.front();
-        Discharge(u);
-        ev.pop_front();
-        flag[u] = false;
-    }
-    
-    for (int u = 0; u<n; u++) {
-        for (int v = u+1; v<n; v++) {
-            if(f[u][v]>0) {
-                mydege[u].push_back(v);
-                cost+=f[u][v]*price[u][v];
-            }
-            if(f[v][u]>0) {
-                mydege[v].push_back(u);
-                cost+=f[v][u]*price[v][u];
-            }
-        }
-    }
-    maxflow = e[n-1];
-    r.maxflow = maxflow;
-    r.cost = cost;
-    return r;
-}
 
 void dosomething(vector<int>& p, int f1) {
     if(p.size()<2) return;
@@ -292,7 +310,7 @@ list<path> getpath()
         if (mydege[i].size()>0)
         {
             q.push_back(f[0][mydege[0][i]]);
-            int f1=10000;
+            int f1=COST;
             int num[N]={0};
             num[0]=i;
             int visit[N]={0};
@@ -358,66 +376,89 @@ list<path> getpath()
     return r;
 }
 
-
+void writeresult(char * result_file)
+{
+    
+    list<path> pa=getpath();
+    ofstream out;
+    out.open(result_file);
+    if(!out)
+    {
+        cout<<"Error opening output stream!"<<endl;
+        return ;
+    }
+    out<<pa.size()<<"\n";
+    out<<"\n";
+    for (auto it = pa.begin(); it!=pa.end(); it++) {
+        it->p.pop_back();
+        auto it2 = it->p.begin();
+        it2++;
+        for (; it2!=it->p.end(); it2++) {
+            
+            out<<*it2-1<<" ";
+            
+        }
+        out<<node_consumer.at(it->p.back())-1<<" ";
+        out<<it->f<<"\n";
+    }
+    
+}
 
 int main(int argc, char *argv[])
 {
-   // long time_used = 0;
-   // struct timeval start, finish;
+    print_time("Start");
+    // long time_used = 0;
+    struct timeval start, finish;
+    //print_time("Start");
     char *topo_file = argv[1];
     char *result_file = argv[2];
-    
+    gettimeofday(&start, NULL);
     process_data(topo_file,result_file);
     get_H_tral();
-    //auto it = Hierarchy_traversal.end();
-//    cout<<Hierarchy_traversal.size()<<endl;
-//    for(auto it= Hierarchy_traversal.begin();it!=Hierarchy_traversal.end();it++)
-//        cout<<it->vextec<<" "<<it->Hierarchy<<","<<occurrence[it->vextec]<<endl;
+    // cout<<Hierarchy_traversal.size()<<endl;
     getsortByH_E();
     
-    for(auto it=sortByH_E.begin();it!=sortByH_E.end();it++){
-        cout<<*it<<endl;
+    //int a[]={8,23,44,16,38,14,39};//0
+    //int a[]={42,8,36,14,49,7,18};//1
+    //int a[]={13,24,49,39,19,30};//2
+    //int a[]={23,27,36,11};//3
+    //int a[]={23,13,27,49,16,38,21};4
+    //    int z=7;
+    //    for(int i=0;i<z;i++)
+    //        selected.push_back(a[i]);
+    //
+    initial r=getinitial();
+    
+    cout<<"初始解"<<r.s<<","<<r.cost+r.s*serverPrice<<"\n";
+    cout<<"直接挂载："<<consumerNum*serverPrice<<endl;
+    
+    gettimeofday(&finish, NULL);
+    
+    vector<int> best=Tabu_search(r,diff_in_us(&finish, &start));
+    init_graph(best);
+    PAIR result=mcmf(0, n-1);
+    if(result.first==need&&(result.second+best.size()<consumerNum*serverPrice)){
+        getfAndPath();
+        writeresult(result_file);
     }
-    getinitial();
+    cout<<"best:"<<result.second+best.size()*serverPrice<<endl;
+    cout<<"直接挂载："<<consumerNum*serverPrice<<endl;
+    //cout<<ans.first<<","<<ans.second+serverPrice*z<<endl;
+    //getfAndPath();
+    //getpath();
+    //writeresult(result_file);
     
-//    initial r=getinitial();
-//    cout<<"r="<<r.s<<endl;
-//    if(r.s<consumerNum)
-//    {
-//        getTlist();
-//        vector<int>solution=Tabu_search(r);
-//        writeResult(result_file,solution);
-//    }
-//
-//    gettimeofday(&start, NULL);
-//    int maxflow= Push_Relable();
-//    gettimeofday(&finish, NULL);
-//    time_used = diff_in_us(&finish, &start);
-//    printf("\n***CPU version time used %ld us!***\n\n",time_used);
-//    printf("Max Flow is %d\n",maxflow);
-//    
-//    gettimeofday(&start, NULL);
-//    auto r = getpath();
-//    gettimeofday(&finish, NULL);
-//    time_used = diff_in_us(&finish, &start);
-//    printf("\n***CPU version time used by getpath is %ld us!***\n\n",time_used);
-//    long sum=0;
-//    for (auto it = r.begin(); it!=r.end(); it++) {
-//                for (auto it2 = it->p.begin(); it2!=it->p.end(); it2++) {
-//                    cout<<*it2<<"->";
-//                }
-//                cout<<"带宽："<<it->f<<endl;
-//        sum+=it->f;
-//    }
-    
-//    if(sum==maxflow)
-//        cout<<"right!"<<endl;
-//    
-   
-    
-    //deploy_server(topo, line_num, result_file);
-    
-   // release_buff(topo, line_num);
+    //    int a=100000000;
+    //    vector<valueofOp> solu=getdropN(selected);
+    //    cout<<solu.size()<<endl;
+    //    for(int i=0;i<solu.size();i++){
+    //        init_graph(solu[i].solution);
+    //        auto cur=mcmf(0,n-1);
+    //        cout<<cur.first<<endl;
+    //        if(cur.first==need)
+    //            a=min(a,(cur.second+(int)solu[i].solution.size()*serverPrice));
+    //    }
+    //    cout<<a<<endl;
     
     print_time("End");
     
