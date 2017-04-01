@@ -16,6 +16,7 @@
 //#include<queue>
 
 using namespace std;
+vector<int> occurrence;//出现次数
 map<int,int> node_consumer; //记录consumer和与其相连的点（<node,consumer>）
 //map<int,int> bwMap;//从1开始
 int price[N][N]={0}; //每条边的单位租用费
@@ -24,6 +25,7 @@ int serverPrice;//服务器单价
 int need;   //服务器总需求
 vector<int> bw;     //存储每个节点的总带宽
 vector<int> sortbyBw;//将节点id按bw由大到小排序
+vector<int> sortbyBwandE;
 vector<double> meanBw;  //存储每个节点的平均带宽
 vector<double> meanPrice;//存储每个节点边的平均租用费
 int n=0; // vertex number
@@ -35,6 +37,8 @@ list<int> ev; // excess flow vertex
 list<int> edge[N]; // edge link list
 vector<int> mydege[N];
 bool flag[N]; // lable whether the vertex is in the flow list
+extern vector<H_tral1> Hierarchy_traversal;    //存储层次遍历结果
+vector<int>sortByH_E;// 以层次和边数来排序
 unsigned long diff_in_us(struct timeval *finishtime, struct timeval * starttime)
 {
     unsigned long long usec;
@@ -43,36 +47,12 @@ unsigned long diff_in_us(struct timeval *finishtime, struct timeval * starttime)
     return usec;
 }
 
-//void to_select()
-//{
-//    vector<PAIR>pair_vec;
-//    for (map<int, int>::iterator map_iter = bwMap.begin(); map_iter != bwMap.end(); ++map_iter)
-//    {
-//        pair_vec.push_back(make_pair(map_iter->first, map_iter->second));
-//    }
-//    sort(pair_vec.begin(), pair_vec.end(), cmp);
-//    /*
-//    for (vector<PAIR>::iterator curr = pair_vec.begin(); curr != pair_vec.end(); ++curr)
-//    {
-//        cout  << curr->first << "," << curr->second << endl;
-//    }
-//    */
-//
-//    vector<PAIR>::iterator curr = pair_vec.begin();
-//    for(int i=0;i<n;i++)
-//    {
-//
-//        selected_node[i]=curr->first+1;
-//        curr++;
-//    }
-//
-//
-//}
+
 void process_data(const char * const filename,const char * const resultfile){
     ifstream in;
     ofstream out;
     int m,u,v,b,p;
-    vector<int> occurrence;//出现次数
+    
     in.open(filename);
     
     if(!in)
@@ -151,7 +131,6 @@ void process_data(const char * const filename,const char * const resultfile){
     out.close();
     
 }
-
 
 inline void Push(int u, int v) // push flow from edge (u, v)
 {
@@ -379,36 +358,7 @@ list<path> getpath()
     return r;
 }
 
-//获取路径和次路径分配的流量
-/*
- list<path> getpath() {
- list<path> r;
- path tmp;
- vector<int> p;
- while (!isempty(mydege[0])) {
- p.push_back(0);
- int f1 = INT_MAX;
- while (p.back()!=n-1) {
- int size = (int)p.size();
- auto it = mydege[p[size-1]].begin();
- while (find(p.begin(), p.end(), *it)!=p.end()) {
- it++;
- }
- p.push_back(*it);
- size++;
- 
- f1 = min(f1, f[p[size-2]][p[size-1]]);
- }
- dosomething(p, f1);
- tmp.p = p;
- tmp.f = f1;
- r.push_back(tmp);
- p.clear();
- }
- 
- return r;
- }
- */
+
 
 int main(int argc, char *argv[])
 {
@@ -418,10 +368,27 @@ int main(int argc, char *argv[])
     char *result_file = argv[2];
     
     process_data(topo_file,result_file);
-    initial r=getinitial();
-    //getTlist();
-
-//    
+    get_H_tral();
+    //auto it = Hierarchy_traversal.end();
+//    cout<<Hierarchy_traversal.size()<<endl;
+//    for(auto it= Hierarchy_traversal.begin();it!=Hierarchy_traversal.end();it++)
+//        cout<<it->vextec<<" "<<it->Hierarchy<<","<<occurrence[it->vextec]<<endl;
+    getsortByH_E();
+    
+    for(auto it=sortByH_E.begin();it!=sortByH_E.end();it++){
+        cout<<*it<<endl;
+    }
+    getinitial();
+    
+//    initial r=getinitial();
+//    cout<<"r="<<r.s<<endl;
+//    if(r.s<consumerNum)
+//    {
+//        getTlist();
+//        vector<int>solution=Tabu_search(r);
+//        writeResult(result_file,solution);
+//    }
+//
 //    gettimeofday(&start, NULL);
 //    int maxflow= Push_Relable();
 //    gettimeofday(&finish, NULL);
