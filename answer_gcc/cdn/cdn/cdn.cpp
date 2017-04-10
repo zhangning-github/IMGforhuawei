@@ -29,6 +29,7 @@ int n=0; // vertex number
 //int e[N]; // residual flow of the vertex
 //int h[N]; // height of the vertex
 int c[N][N]={0}; // capacity of the edge
+int bandwidth[N][N]={0};  //每条边的带宽
 int f[N][N]; // flow of the edge
 //list<int> ev; // excess flow vertex
 //list<int> edge[N]; // edge link list
@@ -37,6 +38,8 @@ bool flag[N]; // lable whether the vertex is in the flow list
 extern vector<H_tral1> Hierarchy_traversal;    //存储层次遍历结果
 vector<int>sortByH_E;// 以层次和边数来排序
 vector<int> selected;     //被选为挂载服务器的节点
+vector<PAIR>pair_vec;
+
 struct Edge {
     int to, rev, cap, cost;
     Edge(int t, int c, int cc, int r) :to(t), cap(c), cost(cc), rev(r){}
@@ -134,7 +137,19 @@ void clear_graph(){
     
     
 }
-void getfAndPath()
+void getf()
+{
+    for(auto it=G[0].begin();it!=G[0].end();it++){
+        f[0][it->to]=COST-it->cap;
+    }
+    for(int i=1;i<n;i++) {
+        for(auto it=G[i].begin();it!=G[i].end();it++){
+            if(it->cost>=0)
+                f[i][it->to]=c[i][it->to]-it->cap;
+        }
+    }
+}
+void getfAndPath()   //f and mydege
 {
     for(auto it=G[0].begin();it!=G[0].end();it++){
         f[0][it->to]=COST-it->cap;
@@ -162,9 +177,9 @@ void getfAndPath()
 
 
 
-long long diff_in_us(struct timeval *finishtime, struct timeval * starttime)
+long diff_in_us(struct timeval *finishtime, struct timeval * starttime)
 {
-    long long usec;
+    long usec;
     usec = (finishtime->tv_sec - starttime->tv_sec)*1000000;
     usec += finishtime->tv_usec - starttime->tv_usec;
     return usec;
@@ -211,7 +226,8 @@ void process_data(const char * const filename,const char * const resultfile){
         meanPrice[v+1]+=p;
         price[u+1][v+1]=p;
         price[v+1][u+1]=p;
-        
+        bandwidth[u+1][v+1]=b;
+        bandwidth[v+1][u+1]=b;
         
         saveG[u+1].push_back(Edge(v+1,b,p,(int)saveG[v+1].size()));
         saveG[v+1].push_back(Edge(u+1,b,p,(int)saveG[u+1].size()));
@@ -252,7 +268,7 @@ void process_data(const char * const filename,const char * const resultfile){
         node_consumer.insert(pair<int,int>(v+1,u+1));
         need+=b;
         c[v+1][n-1]=b;
-        
+        bandwidth[v+1][n-1]=b;
         saveG[v+1].push_back(Edge(n-1,b,0,saveG[n-1].size()));
         //cout<<u<<","<<v<<","<<bw<<endl;
         selected.push_back(v+1);
@@ -414,51 +430,52 @@ int main(int argc, char *argv[])
     char *result_file = argv[2];
     gettimeofday(&start, NULL);
     process_data(topo_file,result_file);
-    get_H_tral();
-    // cout<<Hierarchy_traversal.size()<<endl;
-    getsortByH_E();
-    
-    //int a[]={8,23,44,16,38,14,39};//0
-    //int a[]={42,8,36,14,49,7,18};//1
-    //int a[]={13,24,49,39,19,30};//2
-    //int a[]={23,27,36,11};//3
-    //int a[]={23,13,27,49,16,38,21};4
-    //    int z=7;
-    //    for(int i=0;i<z;i++)
-    //        selected.push_back(a[i]);
-    //
-    initial r=getinitial();
-    
-    cout<<"初始解"<<r.s<<","<<r.cost+r.s*serverPrice<<"\n";
-    cout<<"直接挂载："<<consumerNum*serverPrice<<endl;
-    
-    gettimeofday(&finish, NULL);
-    
-    vector<int> best=Tabu_search(r,diff_in_us(&finish, &start));
-    init_graph(best);
-    PAIR result=mcmf(0, n-1);
-    if(result.first==need&&(result.second+best.size()<consumerNum*serverPrice)){
-        getfAndPath();
-        writeresult(result_file);
+    if(n<700){
+        get_H_tral();
+        getsortByH_E();
     }
-    cout<<"best:"<<result.second+best.size()*serverPrice<<endl;
-    cout<<"直接挂载："<<consumerNum*serverPrice<<endl;
-    //cout<<ans.first<<","<<ans.second+serverPrice*z<<endl;
-    //getfAndPath();
-    //getpath();
-    //writeresult(result_file);
+    double a=1.85,b=3;
+    gettimeofday(&finish, NULL);
+    initial r=getinitial(diff_in_us(&finish, &start),a,a*b);
+    if(n>700)
+    {
+        init_graph(selected);
+        PAIR result=mcmf(0, n-1);
+        if(result.first==need&&(result.second+selected.size()<consumerNum*serverPrice)){
+            getfAndPath();
+            writeresult(result_file);
+        }
+    }
     
-    //    int a=100000000;
-    //    vector<valueofOp> solu=getdropN(selected);
-    //    cout<<solu.size()<<endl;
-    //    for(int i=0;i<solu.size();i++){
-    //        init_graph(solu[i].solution);
-    //        auto cur=mcmf(0,n-1);
-    //        cout<<cur.first<<endl;
-    //        if(cur.first==need)
-    //            a=min(a,(cur.second+(int)solu[i].solution.size()*serverPrice));
-    //    }
-    //    cout<<a<<endl;
+    // cout<<"初始解"<<r.s<<","<<r.cost+r.s*serverPrice<<"\n";
+    //cout<<"直接挂载："<<consumerNum*serverPrice<<endl;
+    if(n<700)
+    {
+        gettimeofday(&finish, NULL);
+        if(n>200){
+            vector<int> best=Tabu_search(r,diff_in_us(&finish, &start));
+            init_graph(best);
+            PAIR result=mcmf(0, n-1);
+            if(result.first==need&&(result.second+best.size()<consumerNum*serverPrice)){
+                getfAndPath();
+                writeresult(result_file);
+            }
+        }
+        else
+        {
+            vector<int> best=Tabu_search1(r,diff_in_us(&finish, &start));
+            init_graph(best);
+            PAIR result=mcmf(0, n-1);
+            if(result.first==need&&(result.second+best.size()<consumerNum*serverPrice)){
+                getfAndPath();
+                writeresult(result_file);
+            }
+            
+        }
+        //        cout<<"best:"<<result.second+best.size()*serverPrice<<endl;
+        //        cout<<"直接挂载："<<consumerNum*serverPrice<<endl;
+    }
+    
     
     print_time("End");
     

@@ -14,6 +14,7 @@ extern vector<int> occurrence;//出现次数
 extern map<int,int> node_consumer; //记录consumer和与其相连的点（<node,consumer>）
 int tabuList_len=20;                      //禁忌列表大小，初始化为3
 int Nerbour_len;                    //存储候选解集的大小
+int drop_nerbour_len=60;           //存储drop候选解集的大小
 extern int n;
 extern int consumerNum;            //消费节点总数
 extern vector<int> bw;            //存储每个节点的总带宽
@@ -24,19 +25,28 @@ extern vector<double> meanPrice;//存储每个节点边的平均租用费
 extern vector<int> sortbyBwandE;
 extern vector<int>sortByH_E;// 以层次和边数来排序
 extern int f[N][N];
-
+extern int price[N][N];
 extern int c[N][N];
+extern int bandwidth[N][N];  //每条边的带宽
 vector<int> Tlist;                //热度列表
 extern vector<int> selected;     //被选为挂载服务器的节点
+extern vector<PAIR>pair_vec;
 
 vector<H_tral1> Hierarchy_traversal;    //存储层次遍历结果
 
 vector<int>bad;  //存储那些drop之后不满足要求的点
+long long TIME=87000000;
 
-
+int cmpVector(const int &x, const int &y){
+    return x>y;
+}
 int cmp(const PAIR &x, const PAIR &y)
 {
     return x.second > y.second;
+}
+int cmp2(const PAIR &x, const PAIR &y)
+{
+    return x.second < y.second;
 }
 int cmp1(const Solution_and_cost &x, const Solution_and_cost &y) {
     return x.cost<y.cost;
@@ -68,7 +78,7 @@ void getsortByH_E(){
 void getsortbyBwandE(){
     vector<PAIR>pair_vec;
     for(int i=1;i<bw.size();i++){
-        pair_vec.push_back(make_pair(i,bw[i]+occurrence[i]*10));
+        pair_vec.push_back(make_pair(i,bw[i]*0+occurrence[i]*1));
     }
     sort(pair_vec.begin(), pair_vec.end(), cmp);
     for (vector<PAIR>::iterator curr = pair_vec.begin(); curr != pair_vec.end(); ++curr)
@@ -194,122 +204,160 @@ void writeResult(char * result_file,vector<int>solution)
     }
     
 }
-initial getinitial(){
+
+PAIR selectMin(int judge[N][N])
+{
+    PAIR r;
+    r.first=-1;
+    int mini=10000;
+    for(int i=0;i<selected.size();i++){
+        for(int j=0;j<selected.size() ;j++){
+            if(judge[selected[i]][selected[j]]<mini&&(find(bad.begin(),bad.end(),selected[j]))==bad.end())
+            {
+                r.first=selected[i];
+                r.second=selected[j];
+            }
+        }
+    }
+    return r;
+}
+initial getinitial(long long time,double arg1,double arg2)
+{
     initial r;
-    PAIR cur;
-    
+    PAIR cur,cur2;
+    int now;
+    vector<int> save=selected;
+    int originprice=consumerNum*serverPrice;
+    int bestprice=originprice;
+    long long time_used;
+    struct timeval start,finish;
+    int judge[N][N];
+    gettimeofday(&start,NULL);
     init_graph(selected);
-    cur=mcmf(0,n-1);
-    cout<<"MAX Flow"<<cur.first<<"cost="<<cur.second<<endl;
+    mcmf(0, n-1);
+    if (n>700)
+    {
+        TIME=88000000;
+        for(int i=0;i<selected.size();i++)
+        {
+            gettimeofday(&finish, NULL);
+            time_used=diff_in_us(&finish, &start)+time;
+            if(time_used>TIME) {
+                cout<<"Time is used!"<<endl;
+                break;
+            }
+            vector<int> s=selected;
+            auto it=find(s.begin(),s.end(),selected[i]);
+            s.erase(it);
+            init_graph(s);
+            cur=mcmf(0,n-1);
+            int now=cur.second+s.size()*serverPrice;
+            if(cur.first==need&&now<bestprice)
+            {
+                if(bestprice-now>serverPrice/arg1)
+                {
+                    bestprice=now;
+                    selected=s;
+                    i--;
+                }
+            }
+            else
+                bad.push_back(selected[i]);
+        }
+        for(int i=0;i<selected.size();i++){
+            for(int j=0;j<selected.size();j++){
+                if(c[selected[i]][selected[j]]>0)
+                    judge[selected[i]][selected[j]]=c[selected[j]][n-1];
+            }
+        }
+        for(int i=0;i<selected.size();i++){
+            judge[selected[i]][selected[i]]=10000;
+        }
+        
+        while(true)
+        {
+            gettimeofday(&finish, NULL);
+            time_used=diff_in_us(&finish, &start)+time;
+            if(time_used>TIME) {
+                cout<<"Time is used!"<<endl;
+                break;
+            }
+            
+            PAIR index=selectMin(judge);
+            if(index.first==-1)
+                break;
+            
+            //if(c[index.second][n-1]*price[index.first][index.second]<serverPrice)
+            {
+                vector<int> s=selected;
+                auto it=find(s.begin(),s.end(),index.second);
+                s.erase(it);
+                init_graph(s);
+                cur=mcmf(0,n-1);
+                int now=cur.second+s.size()*serverPrice;
+                if(cur.first==need&&(now<bestprice)&&(bestprice-now>serverPrice/arg2))//
+                {
+                    //cout<<now<<endl;
+                    bestprice=now;
+                    for(auto t=save.begin();t!=save.end();t++){
+                        judge[index.second][*t]=10000;
+                    }
+                    selected=s;
+                    
+                }
+                else
+                    bad.push_back(index.second);
+                
+            }
+            //            for(auto t=save.begin();t!=save.end();t++){
+            //                judge[*t][index.second]=10000;
+            //            }
+            
+        }
+        for(int i=0;i<selected.size();i++)
+        {
+            gettimeofday(&finish, NULL);
+            time_used=diff_in_us(&finish, &start)+time;
+            if(time_used>TIME) {
+                cout<<"Time is used!"<<endl;
+                break;
+            }
+            vector<int> s=selected;
+            auto it=find(s.begin(),s.end(),selected[i]);
+            s.erase(it);
+            init_graph(s);
+            cur=mcmf(0,n-1);
+            int now=cur.second+s.size()*serverPrice;
+            if(cur.first==need&&(now<bestprice))
+            {
+                bestprice=now;
+                selected=s;
+            }
+            
+        }
+        
+        
+    }
+    
+    //    cout<<"min cost"<<bestprice<<endl;
+    //    cout<<"直接挂载："<<consumerNum*serverPrice<<endl;
+    //    cout<<selected.size()<<endl;
+    //    cout<<consumerNum<<endl;
     r.s = (int)selected.size();
     r.cost=cur.second;
     return r;
 }
-
-//initial getinitial() {
-//    getsortbyBwandE();
-//    initial r;
-//    int i;
-//    int j=0;
-//    int index=1;
-//    int sum=0;
-//    int cur_cost=0;
-//    for (i=1; i<consumerNum; i++) {
-//
-//        //现假定若前k个点无法跑出满足条件的最大流，则任意k个点的组合不满足需求（待商讨）。
-//
-//        while(j<n)
-//        {
-//            int k=0;
-//            for(;k<i-1;k++)
-//            {
-//                if (c[selected[k]][sortbyBwandE[j]]!=0)
-//                    break;
-//            }
-//            if(k==i-1)
-//            {
-//                c[0][sortbyBwandE[j]]=10000;
-//                selected.push_back(sortbyBwandE[j]);
-//                j++;
-//                break;
-//            }
-//            j++;
-//        }
-//
-//        if(j>=n)
-//        {
-//            while(true)
-//            {
-//                int k=0;
-//                for(;k<selected.size();k++){
-//                    if(selected[k]==sortbyBwandE[index]){
-//                        break;
-//                    }
-//                }
-//                if(k==selected.size()){
-//                    c[0][sortbyBwandE[j]]=10000;
-//                    selected.push_back(sortbyBwandE[j]);
-//                    index++;
-//                    break;
-//                }
-//                index++;
-//            }
-//        }
-//        sum+=bw[selected.back()];
-//        if(sum>=need)
-//        {
-//            cout<<i<<endl;
-//            maxflow_and_cost cur=Push_Relable();
-//            cur_cost=cur.cost;
-//            cout<<"bw sum="<<sum<<","<<"need="<<need<<endl;
-//            cout<<"MAX Flow"<<cur.maxflow<<endl;
-//            if(cur.maxflow==need)
-//                break;
-//        }
-//    }
-//
-//    r.s = i;
-//    r.cost=cur_cost;
-//    //    if(i!=consumerNum)//i==consumerNum不需要再运行最大流，因为最优解是直接挂载
-//    //    {
-//    //        list<path> pa=getpath();
-//    //        ofstream out;
-//    //        out.open(result_file);
-//    //        if(!out)
-//    //        {
-//    //            cout<<"Error opening output stream!"<<endl;
-//    //            return r;
-//    //        }
-//    //        out<<pa.size()<<"\n";
-//    //        out<<"\n";
-//    //        for (auto it = pa.begin(); it!=pa.end(); it++) {
-//    //            it->p.pop_back();
-//    //            auto it2 = it->p.begin();
-//    //            it2++;
-//    //            for (; it2!=it->p.end(); it2++) {
-//    //
-//    //                out<<*it2-1<<" ";
-//    //
-//    //            }
-//    //            out<<node_consumer.at(it->p.back())<<" ";
-//    //            out<<it->f<<"\n";
-//    //        }
-//    //
-//    //
-//    //    }
-//    return r;
-//}
 
 //找到由于swap操作产生的候选解集,候选解集的大小为solution的长度，候选集为通过solution中的每个元素
 //与Tlist(热度列表)中不在solution中且热度最高的点交换得到。
 vector<valueofOp> getswapN(vector<int> solution) {
     vector<valueofOp> r;
     int depot_wait_exchange=0;           //存储Tlist(热度列表)中不在solution中且热度最高的点
-    Nerbour_len = 10;
+    Nerbour_len = min(25, (int)solution.size());
     //此处未考虑Tlist中已无点可交换的情况
-    for(auto value:sortByH_E) {
-        if(find(solution.begin(), solution.end(), value)==solution.end()) {
-            depot_wait_exchange = value;
+    for(auto value:pair_vec) {
+        if(find(solution.begin(), solution.end(), value.first)==solution.end()) {
+            depot_wait_exchange = value.first;
             break;
         }
     }
@@ -330,66 +378,28 @@ vector<valueofOp> getswapN(vector<int> solution) {
 }
 
 
+int drop_num=1;                      //每次要drop掉的depot数目
+//每次drop两个depot。
 vector<valueofOp> getdropN(vector<int> solution) {
     sortbyflow_edge(solution);
     vector<valueofOp> r;
-    Nerbour_len = 10;                           //假定drop候选集的大小为10
+    Nerbour_len = min(drop_nerbour_len, (int)solution.size());                  //假定drop候选集的大小为10
     valueofOp tmp;
     pair<int, int> drop;
     int count = 0;
-    for(int i=0;i<solution.size();i++){
-        if(find(bad.begin(), bad.end(), solution[i])==bad.end())
-        {
-            tmp.solution = solution;
-            auto it = tmp.solution.begin();
-            tmp.solution.erase(it+i);
-            
-            drop.first=-2;
-            drop.second=*(it+i);
-            tmp.swap = drop;
-            
-            r.push_back(tmp);
-            count++;
-            if(count>=min((int)solution.size(),Nerbour_len))
-                break;
-            
+    for(int i=0; count<Nerbour_len&&i<solution.size();i++,count++) {
+        tmp.solution = solution;
+        auto it = tmp.solution.begin();
+        //每次drop掉前drop_num个元素
+        for (int j=0; j<drop_num; j++) {
+            tmp.solution.erase(it+i+j);
         }
+        r.push_back(tmp);
     }
-    //    for(int i=0; count<Nerbour_len&&i<solution.size();i++,count++) {
-    //        tmp.solution = solution;
-    //        auto it = tmp.solution.begin();
-    //        tmp.solution.erase(it+i);
-    //
-    //        drop.first=-2;
-    //        drop.second=*(it+i);
-    //        tmp.swap = drop;
-    //
-    //        r.push_back(tmp);
-    //    }
     return r;
 }
 
-//int drop_num=2;                      //每次要drop掉的depot数目
-////每次drop两个depot。
-//vector<valueofOp> getdropN(vector<int> solution) {
-//    sortbyflow_edge(solution);
-//    vector<valueofOp> r;
-//    Nerbour_len = min(10, (int)solution.size()/2);                  //假定drop候选集的大小为10
-//    valueofOp tmp;
-//    pair<int, int> drop;
-//    int count = 0;
-//    for(int i=0; count<Nerbour_len&&i<solution.size();i++,count++) {
-//        tmp.solution = solution;
-//        auto it = tmp.solution.begin();
-//        //每次drop掉前drop_num个元素
-//        for (int j=0; j<drop_num; j++) {
-//            tmp.solution.erase(it+i+j);
-//        }
-//        r.push_back(tmp);
-//    }
-//    return r;
-//}
-//找到由于insert操作产生的候选解集
+
 vector<valueofOp> getinsertN(vector<int> solution) {
     vector<valueofOp> r;
     //候选解的大小
@@ -453,21 +463,18 @@ void updateT(vector<pair<int, int>>& tabuList, valueofOp value) {
     tabuList.push_back(value.swap);
 }
 
-void updateBad(valueofOp value){
+void updateBad(int value){
     if(bad.size()>=tabuList_len){
         bad.erase(bad.begin());
     }
-    bad.push_back(value.swap.second);
+    bad.push_back(value);
 }
 vector<int> Tabu_search(initial r,long long time) {
+    //生成Tlist列表
+    //上述两步在cdn.cpp处理数据时完成，此处为逻辑完整性，列出，最终需删除
     long long time_used;;
     struct timeval start, finish;
     gettimeofday(&start,NULL);
-    //生成Tlist列表
-    //上述两步在cdn.cpp处理数据时完成，此处为逻辑完整性，列出，最终需删除
-    
-    
-    
     int A;                          //渴望水平
     vector<int> bestSolu=selected;             //历史最优解
     vector<int> curBestSolu=selected;                  //保存候选解中的最优解
@@ -477,21 +484,83 @@ vector<int> Tabu_search(initial r,long long time) {
     vector<pair<int, int>> tabuList;               //存储禁忌列表
     //auto r = getinitial();
     A = r.cost+r.s*serverPrice;
-    cout<<"best cost"<<A<<endl;
+    //    cout<<"best cost："<<A<<endl;
     vector<Solution_and_cost> nerbou;           //存储候选解及其花费（按花费从高到低排序）
-    //
-    //    for (int i=0; i<r.s; i++) {
-    //        curBestSolu.push_back(bw[i]);
-    //    }
-    //
-    for (int k=bestSolu.size(); k>0; k--) {                       //insert操作的循环
+    
+    for (int k=(int)bestSolu.size(); k>0; k--) {                       //insert操作的循环
         gettimeofday(&finish, NULL);
-        time_used=diff_in_us(&finish,&start)+time;
-        if(time_used>83000000){
+        time_used=diff_in_us(&finish,&start);
+        if(time_used>TIME){
             cout<<"Time is used!"<<endl;
             break;
         }
-        cout<<"****************"<<k<<","<<time_used<<endl;
+        //drop操作
+        op = getdropN(curBestSolu);
+        //if(isallin(op, tabuList)) break;
+        mincost = 1000000;
+        valueofOp tmp_drop;
+        Solution_and_cost drop_tmp;
+        for(auto valueof_dropN:op) {
+            init_graph(valueof_dropN.solution);
+            auto cur=mcmf(0,n-1);
+            auto tmpcost = cur.second+valueof_dropN.solution.size()*serverPrice;
+            if(cur.first!=need)continue;
+            //            cout<<"drop cost："<<tmpcost<<endl;
+            drop_tmp.solution = valueof_dropN.solution;
+            drop_tmp.cost = (int)tmpcost;
+            drop_tmp.swap = valueof_dropN.swap;
+            nerbou.push_back(drop_tmp);
+            if(mincost>tmpcost) {
+                mincost = (int)tmpcost;
+                curBestSolu = valueof_dropN.solution;
+                tmp_drop = valueof_dropN;
+            }
+        }
+        if(mincost<A) {
+            bestSolu = curBestSolu;
+            A=mincost;
+            //            updateT(tabuList, tmp_drop);
+        }
+        else {
+            sort(nerbou.begin(), nerbou.end(), cmp1);
+            //            updateT(tabuList, dosomething2(nerbou, tabuList));
+        }
+        nerbou.clear();
+        //drop操作结束
+        
+        sort(pair_vec.begin(), pair_vec.end(), cmp);
+        
+    }
+    //cout<<"最小："<<A<<endl;
+    return bestSolu;
+    
+}
+
+vector<int>Tabu_search1(initial r,long long time) {
+    //生成Tlist列表
+    //上述两步在cdn.cpp处理数据时完成，此处为逻辑完整性，列出，最终需删除
+    long long time_used;;
+    struct timeval start, finish;
+    gettimeofday(&start,NULL);
+    int A;                          //渴望水平
+    vector<int> bestSolu=selected;             //历史最优解
+    vector<int> curBestSolu=selected;                  //保存候选解中的最优解
+    int mincost;                       //保存候选解中最小花费
+    vector<valueofOp> op;             //存储swap候选解及得到候选解所做操作
+    //vector<valueof_insertN> insertN;         //存储inserN候选解
+    vector<pair<int, int>> tabuList;               //存储禁忌列表
+    //auto r = getinitial();
+    A = r.cost+r.s*serverPrice;
+    //    cout<<"best cost："<<A<<endl;
+    vector<Solution_and_cost> nerbou;           //存储候选解及其花费（按花费从高到低排序）
+    
+    for (int k=(int)bestSolu.size(); k>0; k--) {                       //insert操作的循环
+        gettimeofday(&finish, NULL);
+        time_used=diff_in_us(&finish,&start)+time;
+        if(time_used>TIME){
+            cout<<"Time is used!"<<endl;
+            break;
+        }
         //drop操作
         op = getdropN(curBestSolu);
         if(isallin(op, tabuList)) break;
@@ -502,17 +571,14 @@ vector<int> Tabu_search(initial r,long long time) {
             init_graph(valueof_dropN.solution);
             auto cur=mcmf(0,n-1);
             auto tmpcost = cur.second+valueof_dropN.solution.size()*serverPrice;
-            if(cur.first!=need){
-                updateBad(valueof_dropN);
-                continue;
-            }
-            cout<<"drop cost"<<tmpcost<<endl;
+            if(cur.first!=need)continue;
+            //            cout<<"drop cost："<<tmpcost<<endl;
             drop_tmp.solution = valueof_dropN.solution;
-            drop_tmp.cost = tmpcost;
+            drop_tmp.cost = (int)tmpcost;
             drop_tmp.swap = valueof_dropN.swap;
             nerbou.push_back(drop_tmp);
             if(mincost>tmpcost) {
-                mincost = tmpcost;
+                mincost = (int)tmpcost;
                 curBestSolu = valueof_dropN.solution;
                 tmp_drop = valueof_dropN;
             }
@@ -520,145 +586,76 @@ vector<int> Tabu_search(initial r,long long time) {
         if(mincost<A) {
             bestSolu = curBestSolu;
             A=mincost;
-            updateT(tabuList, tmp_drop);
+            //            updateT(tabuList, tmp_drop);
         }
         else {
             sort(nerbou.begin(), nerbou.end(), cmp1);
-            updateT(tabuList, dosomething2(nerbou, tabuList));
+            //            updateT(tabuList, dosomething2(nerbou, tabuList));
         }
         nerbou.clear();
         //drop操作结束
         
-        
         //针对每一种insert最优情况，做一组swap操作
         mincost=1000000;
         op = getswapN(curBestSolu);
+        
+        int curcost;                        //记为当前最优解的花费
+        
         valueofOp tmp;
         
         //swap中有不在禁忌列表中的情况
-        if(!isallin(op, tabuList)) {
-            //选次优解待定
-            
-            Solution_and_cost scost_tmp;
-            for(auto it:op) {
-                init_graph(it.solution);
-                auto cur=mcmf(0,n-1);
-                auto tmpcost = cur.second+it.solution.size()*serverPrice;
-                if(cur.first!=need)continue;
-                cout<<"swap cost"<<tmpcost<<endl;
-                scost_tmp.solution = it.solution;
-                scost_tmp.cost = tmpcost;
-                scost_tmp.swap = it.swap;
-                nerbou.push_back(scost_tmp);
-                if(mincost>tmpcost) {
-                    mincost=tmpcost;
-                    curBestSolu=it.solution;
-                    tmp = it;
+        //        if(!isallin(op, tabuList)) {
+        //选次优解待定
+        
+        Solution_and_cost scost_tmp;
+        for(auto it:op) {
+            init_graph(it.solution);
+            auto cur=mcmf(0,n-1);
+            auto tmpcost = cur.second+it.solution.size()*serverPrice;
+            if(cur.first!=need)continue;
+            if(tmpcost<curcost) {
+                int tmpcount=0;
+                //增加换入顶点的热度
+                for (auto it1=pair_vec.begin(); it1!=pair_vec.end(); it1++) {
+                    if(it1->first==it.swap.second) {
+                        tmpcount++;
+                        it1->second+=1;
+                    }
+                    if(it1->first==it.swap.first) {
+                        tmpcount++;
+                        it1->second-=1;
+                    }
+                    if(tmpcount==2) break;
                 }
             }
-            
-            //循环跳出之后，则S为候选解中最优解，cost为其花费。
-            if(mincost<A) {
-                bestSolu = curBestSolu;
-                A = mincost;
-                updateT(tabuList, tmp);
+            // cout<<"swap cost："<<tmpcost<<endl;
+            scost_tmp.solution = it.solution;
+            scost_tmp.cost = (int)tmpcost;
+            scost_tmp.swap = it.swap;
+            nerbou.push_back(scost_tmp);
+            if(mincost>tmpcost) {
+                mincost = (int)tmpcost;
+                curBestSolu=it.solution;
+                tmp = it;
             }
-            else {
-                sort(nerbou.begin(), nerbou.end(), cmp1);
-                updateT(tabuList, dosomething2(nerbou,tabuList));
-            }
-            nerbou.clear();
         }
+        
+        //循环跳出之后，则S为候选解中最优解，cost为其花费。
+        if(mincost<A) {
+            bestSolu = curBestSolu;
+            A = mincost;
+            //                updateT(tabuList, tmp);
+        }
+        else {
+            sort(nerbou.begin(), nerbou.end(), cmp1);
+            //                updateT(tabuList, dosomething2(nerbou,tabuList));
+        }
+        nerbou.clear();
+        //        }
         //上组swap操作结束
+        sort(pair_vec.begin(), pair_vec.end(), cmp);
+        
     }
+    cout<<"最小："<<A<<endl;
     return bestSolu;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-//
-//void deploy_server(char * topo[MAX_EDGE_NUM], int line_num,char * filename)
-//{
-//    int consumerNum = 0;
-//    char *c;
-//    int spaceCount = 0;
-//
-//    c = topo[0];
-//
-//    while (*c != '\0' && *c != '\n' && *c != '\r')
-//    {
-//        if (*c == ' ')
-//        {
-//            c++;
-//            spaceCount++;
-//            continue;
-//        }
-//        if (spaceCount == 2)
-//        {
-//            consumerNum = *c - '0' + consumerNum * 10;
-//        }
-//        c++;
-//    }
-//
-//    string res;
-//    char a[20];
-//    sprintf(a, "%d\n\n",consumerNum);
-//    res = a;
-//    int netnode, need;
-//
-//    for (int i = 1; i < consumerNum+1; i++)
-//    {
-//        c = topo[line_num-i];
-//        netnode = need = spaceCount = 0;
-//        while (*c != '\0' && *c != '\n' && *c != '\r')
-//        {
-//            if (*c == ' ')
-//            {
-//                c++;
-//                spaceCount++;
-//                continue;
-//            }
-//            if (spaceCount == 1)
-//            {
-//                netnode = *c - '0' + netnode * 10;
-//            }
-//            else if (spaceCount == 2)
-//            {
-//                need = *c - '0' + need * 10;
-//            }
-//            c++;
-//        }
-//        sprintf(a, "%d %d %d",netnode,consumerNum-i,need);
-//        res += a;
-//        if (i != consumerNum)
-//        {
-//            res += "\n";
-//        }
-//    }
-//
-//    char * topo_file = (char *)res.c_str();
-//    write_result(topo_file, filename);
-//}

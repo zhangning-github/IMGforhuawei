@@ -42,19 +42,20 @@ struct hot_v {
     int hot;
 };
 
-const int N = 1000;
+const int N = 1002;
 
 typedef pair<int, int> PAIR;
 void process_data(const char * const filename,const char * const resultfile);
 int cmp(const PAIR &x, const PAIR &y);
 void getsortbyBwandE();
 void getTlist();
-initial getinitial();
+initial getinitial(long long time,double arg1,double arg2);
 
 void dosomething(vector<int>& p, int f1);
 valueofOp dosomething2(vector<Solution_and_cost> nerbou, vector<pair<int, int>> tabuList);
 list<path> getpath();
 vector<int>Tabu_search(initial r, long long time);
+vector<int>Tabu_search1(initial r,long long time);
 void writeResult(char * result_file,vector<int>solution);
 void deploy_server(char * graph[MAX_EDGE_NUM], int edge_num, char * filename);
 void get_H_tral();
@@ -64,5 +65,7 @@ PAIR mcmf(int s, int t);
 void init_graph(vector<int> select);
 vector<valueofOp> getdropN(vector<int> solution);
 void sortbyflow_edge(vector<int>& solution);
-long long diff_in_us(struct timeval *finishtime, struct timeval * starttime);
+long diff_in_us(struct timeval *finishtime, struct timeval * starttime);
+void getfAndPath();
+void getf();
 #endif
